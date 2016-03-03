@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1456773907 source:c:\users\kestutis\documents\codeblocks projects\univeras github repo\repospace\others\binary search trees\main.cpp
+	<iostream>
+	<string>
+	<vector>
+
