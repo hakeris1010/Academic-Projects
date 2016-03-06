@@ -49,6 +49,7 @@ Temporary Items
 # IDE Created Files
 *.cbp
 *.layout
+*.depend
 
 # Compiler-Generated files
 *.o
