@@ -46,8 +46,8 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# IDE Created Files
-*.cbp
+# IDE Created Files (But we will stage CPB Project files)
+#*.cbp
 *.layout
 *.depend
 
