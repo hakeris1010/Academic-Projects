@@ -54,3 +54,7 @@ Temporary Items
 # Compiler-Generated files
 *.o
 *.exe
+
+#Directories
+**/**/bin/
+**/**/obj/
