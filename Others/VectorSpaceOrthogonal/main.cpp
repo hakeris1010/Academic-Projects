@@ -14,6 +14,9 @@
 #include <cmath>
 #include <vector>
 
+#define DEBUG_INTEGRAL false
+#define DEBUG_COMP_ORTHOGS true
+
 struct PolynomialElement
 {
     double coeff;
@@ -35,7 +38,7 @@ public:
     std::vector<PolynomialElement> elems;
     int currentPos;
 
-    void simplify();
+    PolynomialEquation simplify();
     void clear();
 
     PolynomialEquation operator* (const PolynomialEquation poly1);
@@ -49,17 +52,30 @@ void PolynomialEquation::clear()
     elems.clear();
 }
 
-void PolynomialEquation::simplify()
+PolynomialEquation PolynomialEquation::simplify()
 {
+    for(auto ai = elems.begin(); ai < elems.end(); ++ai)
+    {
+        for(auto aj = elems.end()-1; aj > ai; --aj)
+        {
+            if(ai->exponent == aj->exponent)
+            {
+                ai->coeff += aj->coeff;
+                elems.erase(aj);
+            }
+        }
+    }
 
+    return *this;
 }
 
-PolynomialEquation PolynomialEquation::operator* (const PolynomialEquation poly1, const PolynomialEquation poly2)
+PolynomialEquation PolynomialEquation::operator* (const PolynomialEquation poly1)
 {
     std::vector<PolynomialElement> temp(elems.size() * poly1.elems.size()); //for optimization.
     int iter=0;
+    PolynomialEquation polret = *this;
 
-    for(auto ai=poly1.elems.begin(); ai<poly1.elems.end(); ++ai)
+    for(auto ai=polret.elems.begin(); ai<polret.elems.end(); ++ai)
     {
         if(iter>=temp.size()) break;
         for(auto aj=poly1.elems.begin(); aj<poly1.elems.end(); ++aj)
@@ -71,7 +87,6 @@ PolynomialEquation PolynomialEquation::operator* (const PolynomialEquation poly1
             iter++;
         }
     }
-    PolynomialElement polret = *this;
     polret.elems = temp;
 
     return polret;
@@ -79,8 +94,8 @@ PolynomialEquation PolynomialEquation::operator* (const PolynomialEquation poly1
 
 PolynomialEquation PolynomialEquation::operator* (const double val)
 {
-    PolynomialElement polret = *this;
-    for(auto ai=poly1.elems.begin(); ai<poly1.elems.end(); ++ai)
+    PolynomialEquation polret = *this;
+    for(auto ai=polret.elems.begin(); ai<polret.elems.end(); ++ai)
     {
         ai->coeff *= val;
     }
@@ -88,99 +103,131 @@ PolynomialEquation PolynomialEquation::operator* (const double val)
     return polret;
 }
 
-PolynomialEquation PolynomialEquation::operator+ (const PolynomialEquation poly1, const PolynomialEquation poly2)
+PolynomialEquation PolynomialEquation::operator+ (const PolynomialEquation poly1)
 {
-    for(auto ai=poly2.elems.begin(); ai<poly2.elems.end(); ++ai)
+    PolynomialEquation polret = *this;
+    for(auto ai=poly1.elems.begin(); ai<poly1.elems.end(); ++ai)
     {
-        poly1.elems.push_back(*ai);
+        polret.elems.push_back(*ai);
     }
 
-    return poly1;
+    return polret;
 }
 
 //printas
-void printPolynom(PolynomialEquation eq)
+void printPolynom(PolynomialEquation eq, int mode=1)
 {
-    /*for(int i=0; i<eq.elems.size(); i++)
-        printf("[%d]: co=%g, exp=%g\n", i, eq.elems[i].coeff, eq.elems[i].exponent);*/
-
-    for(auto ai = eq.elems.begin(); ai< eq.elems.end(); ++ai)
+    if(mode==0 || mode==2)
     {
-        //printf("[%d]: co=%d, exp=%d\n", 0, ai->coeff, ai->exponent);
-        if(ai->coeff != 0)
-        {
-            printf(" ");
-            if(ai>eq.elems.begin() && ai->coeff>0)
-                printf("+ ");
-
-            if(ai->coeff!=1)
-                printf("%g", ai->coeff);
-
-            if(ai->exponent != 0)
-            {
-                printf("x");
-                if(ai->exponent != 1)
-                    printf("^%g", ai->exponent);
-            }
-            else
-                printf("1");
-        }
+        for(int i=0; i<eq.elems.size(); i++)
+            printf("[%d]: co=%g, exp=%g\n", i, eq.elems[i].coeff, eq.elems[i].exponent);
     }
-    printf("\n");
+    if(mode==1 || mode==2)
+    {
+        for(auto ai = eq.elems.begin(); ai< eq.elems.end(); ++ai)
+        {
+            //if(ai->coeff != 0)
+            {
+                printf(" ");
+                if(ai>eq.elems.begin() && ai->coeff>0)
+                    printf("+ ");
+
+                if(ai->coeff!=1)
+                    printf("%g", ai->coeff);
+
+                if(ai->exponent != 0)
+                {
+                    printf("x");
+                    if(ai->exponent != 1)
+                        printf("^%g", ai->exponent);
+                }
+                else if(ai->coeff==1)
+                    printf("1");
+            }
+        }
+        printf("\n");
+    }
 }
 
 //Integralas .
 bool getIntegralFromPolynom(PolynomialEquation poly, double r1, double r2, double *result)
 {
+    bool dbg = DEBUG_INTEGRAL;
     //Hatsune Miku daisuki desu! Nyaa~ :3
-    *result=1;
+    *result=0;
 
-    printf("Integral:\n");
-    printPolynom(poly);
+    for(auto ai = poly.elems.begin(); ai < poly.elems.end(); ++ai)
+    {
+        (ai->coeff) /= (ai->exponent)+1;
+        (ai->exponent)++;
+
+        if(ai->coeff != 0)
+            (*result) += pow(r2, (ai->exponent)) * (ai->coeff);
+
+        if((ai->exponent<0 && r1==0) || (r1<0 && ai->exponent<1))
+            return false;
+
+        if(dbg) printf("Loop no.%d: *result=%g\n", (int)(ai-poly.elems.begin()), *result);
+    }
+
+    for(auto ai = poly.elems.begin(); ai < poly.elems.end(); ++ai)
+    {
+        if(ai->coeff != 0)
+            (*result) -= pow(r1, (ai->exponent)) * (ai->coeff);
+
+        if((ai->exponent<0 && r1==0) || (r1<0 && ai->exponent<1))
+            return false;
+
+        if(dbg) printf("Loop no.%d: *result=%g\n", (int)(ai-poly.elems.begin()), *result);
+    }
+
+    if(dbg) printf("Integral:\n");
+    if(dbg) printPolynom(poly);
+    if(dbg) printf("Result: %g\n\n", *result);
 
     return true;
 }
 
 //Pagrindine skaiciavimo funkcija, apskaiciuoja visa ortogonaline sistema.
-int MainRunner(int n, double integ_r1, double integ_r2)
+int ComputeOrthogonals(PolynomialEquation *startEqs, int n, double integ_r1, double integ_r2)
 {
+    bool dbg = DEBUG_COMP_ORTHOGS;
+    if(dbg) printf("MainRunner Start!\ni1= %g, i2=%g\n\nStart Equations (%d):\n", integ_r1, integ_r2, n);
+
+    for(int i=0; i<n; i++)
+    {
+        printf("[%d]: ", i);
+        printPolynom(startEqs[i]);
+    }
+    printf("\n");
+
     PolynomialEquation orthogonalEquations[n]; //masyvas saugoti ortogonaliniams reiskiniams.
     int orthCounter=0;
 
     for(int i=0; i<n; i++)
     {
-        PolynomialElement tmpElem;
+        /*PolynomialElement tmpElem;
         tmpElem.coeff = 1; //set the first element (x^i).
-        tmpElem.exponent = i;
+        tmpElem.exponent = i;*/
 
-        orthogonalEquations[i].elems.push_back(tmpElem);
-        orthogonalEquations[i].currentPos++;
+        orthogonalEquations[i] = startEqs[i]; //this
 
-        printf("\nLoop no. %d. Polynom before:\n", i);
-        printPolynom(orthogonalEquations[i]);
+        if(dbg) printf("\nLoop no. %d. Polynom before:\n", i);
+        if(dbg) printPolynom(orthogonalEquations[i]);
 
         for(int j=0; j<i; j++)
         {
-            /*if(orthogonalEquations[i].currentPos >= orthogonalEquations[i].elems.size())
-            {
-                printf("currentPos overflow!\n");
-                break;
-            }*/
-
             double coefX=0, coefY=0;
-            //PolynomialEquation tmp = multiplicatePolys(orthogonalEquations[i] * orthogonalEquations[j]);
 
-            if(!getIntegralFromPolynom(orthogonalEquations[i] * orthogonalEquations[j], integ_r1, integ_r2, &coefX))
+            if(!getIntegralFromPolynom( (orthogonalEquations[i] * orthogonalEquations[j]).simplify(), integ_r1, integ_r2, &coefX ))
             {
-                printf("Integral calculation error 1!\n");
+                if(dbg) printf("Integral calculation error 1!\n");
                 break;
             }
 
-            //tmp = multiplicatePolys(orthogonalEquations[j] * orthogonalEquations[j]);
-
-            if(!getIntegralFromPolynom(orthogonalEquations[j] * orthogonalEquations[j], integ_r1, integ_r2, &coefY))
+            if(!getIntegralFromPolynom( (orthogonalEquations[j] * orthogonalEquations[j]).simplify(), integ_r1, integ_r2, &coefY ))
             {
-                printf("Integral calculation error 2!\n");
+                if(dbg) printf("Integral calculation error 2!\n");
                 break;
             }
 
@@ -188,12 +235,30 @@ int MainRunner(int n, double integ_r1, double integ_r2)
 
             orthogonalEquations[i] = orthogonalEquations[i] + (orthogonalEquations[j] * coefX);
         }
+        orthogonalEquations[i].simplify();
 
-        printf("Polynom after:\n");
-        printPolynom(orthogonalEquations[i]);
+        if(dbg) printf("Polynom after:\n");
+        if(dbg) printPolynom(orthogonalEquations[i]);
     }
 
     return 0;
+}
+
+void MainRunner()
+{
+    int n=3, int_r1=0, int_r2=1;
+    PolynomialEquation eqs[n];
+
+    for(int i=0; i<n; i++)
+    {
+        PolynomialElement tmpElem;
+        tmpElem.coeff = 1; //set the first element (x^i).
+        tmpElem.exponent = i;
+
+        eqs[i].elems.push_back(tmpElem);
+    }
+
+    ComputeOrthogonals(eqs, n, int_r1, int_r2);
 }
 
 void testSpace()
@@ -215,18 +280,37 @@ void testSpace()
     printf("Equation2:\n");
     printPolynom(eq2);
 
-    printf("\neq1*eq2");
+    /*printf("\neq1*eq2\n");  //*eq
     printPolynom(eq1*eq2);
 
-    printf("\neq1");
+    printf("eq1\n");
     printPolynom(eq1);
+
+    printf("\neq1+eq2\n");  //+
+    printPolynom(eq1+eq2);
+
+    printf("eq1\n");
+    printPolynom(eq1);
+
+    printf("\neq1*3\n");  //*3
+    printPolynom(eq1*3);
+
+    printf("eq1\n");
+    printPolynom(eq1);*/
+
+    double integ;
+    printf("\nIntegral of eq1:\n");
+    getIntegralFromPolynom(eq1, 1, 2, &integ);
+
+    printf("\nIntegral of eq2:\n");
+    getIntegralFromPolynom(eq2, 1, 2, &integ);
 }
 
 int main()
 {
-    //MainRunner(3, 0, 1);
+    MainRunner();
 
-    testSpace();
+    //testSpace();
 
     return 0;
 }
