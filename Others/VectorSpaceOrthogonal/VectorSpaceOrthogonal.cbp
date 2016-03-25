@@ -33,6 +33,8 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="main.cpp" />
+		<Unit filename="polynomial.cpp" />
+		<Unit filename="polynomial.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
