@@ -108,7 +108,8 @@ int getArrayElementsFromUser(int arr[], int len, int a, int b)
     {
         char st[16];
         sprintf(st, "[%d]: \0", i); //let's write current pos to a string
-        getNumWithValidation(st, &arr[i], INT_MIN+1, INT_MAX-1); //Lets get a number.
+        if(getNumWithValidation(st, &arr[i], INT_MIN+1, INT_MAX-1)) //if error while getting
+            arr[i]=0; //let it be 0.u
     }
     return 0;
 }
@@ -119,16 +120,16 @@ int getArrayElementsRandom(int arr[], int len, int a, int b, int mode) //Mode: 1
     if(a<0 || a>=len || b<0 || b>=len || a>b)
         return 1;
 
-    int min=1, max=0;
+    int min=0, max=0;
     if(mode==1)
     {
-        while(min>max)
-        {
-            getNumWithValidation("Iveskite maziausia rezi:\n>> ", &min, INT_MIN+1, INT_MAX-1); //get reziai with validation
-            getNumWithValidation("Iveskite didziausia rezi:\n>> ", &max, min, INT_MAX-1);
+        if(getNumWithValidation("Iveskite maziausia rezi:\n>> ", &min, INT_MIN+1, INT_MAX-1)) return; //get reziai with validation
+        if(getNumWithValidation("Iveskite didziausia rezi:\n>> ", &max, min, INT_MAX-1)) return;
 
-            if(min>max)
-                printf("Blogi reziai! (min>=max)\n");
+        if(min>max)
+        {
+            printf("Blogi reziai! (min>max)\n");
+            return 1;
         }
     }
 
@@ -148,16 +149,19 @@ void setArrayElements(int arr[], int size, int a, int b)
     if(a<0 || a>=size || b<0 || b>=size || a>b)
         return;
 
-    int choice;
-    getNumWithValidation("Kokiu budu irasyti elementus?\n 1 - rankiniu\n 2 - atsitiktiniu iki RAND_MAX\n 3 - atsitiktiniu su jusu nustatytais reziais.\n>> ", &choice, 1, 3);
+    int choice=3;
+    getNumWithValidation("Kokiu budu irasyti elementus?\n 1 - rankiniu\n 2 - atsitiktiniu su jusu nustatytais reziais.\n 3 - atsitiktiniu iki RAND_MAX (default'as)\n>> ", &choice, 1, 3);
 
     //set array elements according to the choise by user
-    if(choice==1)
-        getArrayElementsFromUser(arr, size, a, b);
-    else if(choice==2)
-        getArrayElementsRandom(arr, size, a, b, 0);
-    else
-        getArrayElementsRandom(arr, size, a, b, 1);
+    switch(choice)
+    {
+    case 1:
+        getArrayElementsFromUser(arr, size, a, b); break;
+    case 2:
+        getArrayElementsRandom(arr, size, a, b, 1); break; //Random from user
+    default:
+        getArrayElementsRandom(arr, size, a, b, 0); break; //random RAND_MAX
+    }
 }
 
 int deleteArrayElements(int arr[], int *size, int a, int b)
@@ -179,31 +183,34 @@ int deleteArrayElements(int arr[], int *size, int a, int b)
 }
 
 //complex inserting function, works in an interval.
-int insertArrayElements(int arr[], int *size, int a, int b)
+int insertArrayElements(int arr[], int *size, int maxSize, int pos, int interSize)
 {
-    if(a<0 || a>=(sizeof(arr)/sizeof(arr[0])) || b<0 || b>=(sizeof(arr)/sizeof(arr[0])) || a>b)
+    if(pos<0 || pos>=maxSize || interSize<0 || ((*size)+interSize > maxSize))
     {
-        printf("Blogi reziai! (a=%d, b=%d, sizeof(arr)=%d)\n", a, b, sizeof(arr)/sizeof(arr[0]));
+        printf("Blogi reziai! (pos=%d, interSize=%d, maxSize=%d)\n", pos, interSize, maxSize);
         return 1;
     }
 
-    if(((*size)+b-a) > (sizeof(arr)/sizeof(arr[0])))
+    if((*size)+interSize > maxSize)
     {
         printf("Iterpimas virsys masyvo talpa! Prasome padidinti masyva.\n");
         return 3;
     }
-    if(a>=(*size))
+    if(pos>=(*size))
     {
-        for(int i=(*size); i<a; i++)
+        for(int i=(*size); i<pos; i++)
             arr[i]=0;
 
-        (*size) = a+1;
+        (*size) = pos;
     }
 
-    for(int i=a; i<=b; i++)
+    for(int i=pos; i<pos+interSize; i++)
     {
-        if((*size)>=(sizeof(arr)/sizeof(arr[0])))
+        if(i>=maxSize || (*size)>=maxSize) //for more accuracy
+        {
+            printf("Error! [i>=maxSize || (*size)>maxSize]\n");
             break;
+        }
 
         for(int j=(*size); j>i; j--)
             arr[j]=arr[j-1];
@@ -212,23 +219,38 @@ int insertArrayElements(int arr[], int *size, int a, int b)
         arr[i]=0;
     }
 
-    setArrayElements(arr, *size, a, b); //let's get our elements!
+    setArrayElements(arr, *size, pos, pos+interSize-1); //let's get our elements!
 
     return 0;
 }
 
-void changeArrayElements(int arr[], int *len, int mode) //mode: 0 - change, 1 - delete, 2 - insert
+void changeArrayElements(int arr[], int *len, int maxSize, int mode) //mode: 0 - change, 1 - delete, 2 - insert
 {
-    int a, b;
-    getNumWithValidation("\nIveskite nuo kur keisim elementus (rezis a):\n>> ", &a, 0, (*len)-1);
-    getNumWithValidation("\nIveskite iki kur keisim elementus (rezis b):\n>> ", &b, a, (*len)-1);
+    int a=0, b=0;
+    printf("\nElementu keitimas. Default'iniai reziai: a=%d, b=%d\n", a, b);
+
+    if(mode==2) //insert
+    {
+        if((*len)==maxSize)
+        {
+            printf("\nMasyvo ilgis maksimalus. Nera vietos iterpimui.\n");
+            return;
+        }
+        if(getNumWithValidation("\nIveskite pozicija kurioje iterpinesime (a):\n>> ", &a, 0, maxSize-1)) return;
+        if(getNumWithValidation("\nIveskite iterpiamo intervalo ilgi (b):\n>> ", &b, 0, (a>(*len) ? maxSize-a : maxSize-(*len)) )) return;
+    }
+    else
+    {
+        if(getNumWithValidation("\nIveskite nuo kur keisim elementus (rezis a):\n>> ", &a, 0, (*len)-1)) return;
+        if(getNumWithValidation("\nIveskite iki kur keisim elementus (rezis b):\n>> ", &b, a, (*len)-1)) return;
+    }
 
     if(mode==0)
         setArrayElements(arr, *len, a, b);
     else if(mode==1)
         deleteArrayElements(arr, len, a, b);
     else if(mode==2)
-        insertArrayElements(arr, len, a, b);
+        insertArrayElements(arr, len, maxSize, a, b);
 
     printf("\nElementai po pakeitimo:");
     printArrayElements(arr, *len);
@@ -238,7 +260,12 @@ void changeArrayElements(int arr[], int *len, int mode) //mode: 0 - change, 1 - 
 //function getting an int array from user or randomly.
 int getArray(int** array, int* size, int maxSize)
 {
-    getNumWithValidation("\nIveskite masyvo ilgi:\n>> ", size, 1, maxSize); //let's get our new size
+    //let's get our new size
+    if(getNumWithValidation("\nIveskite masyvo ilgi:\n>> ", size, 1, maxSize)) //if bad (!0)
+    {
+        printf("Niekas nepakeista.\n");
+        return 0; //exitted
+    }
 
     if((*array)==NULL)
         (*array) = (int*)malloc(*size * sizeof(int)); //if first time, use 'Malloc'
@@ -258,33 +285,19 @@ int getArray(int** array, int* size, int maxSize)
 }
 
 //Function showing current status of our arrays.
-void showStatus(int arr1[], int arr2[], int siz1, int siz2, int mode) //mode: 0 - whole, 1 - array 1 , 2 - array 2
+void showStatus(int arr[], int curSiz, int maxSiz, const char* masName)
 {
-    if(arr1==NULL && (mode==1 || mode==0))
-        printf("\nMasyvas 1 - nulinis (nenustatytas!)\n");
-    if(arr2==NULL && (mode==2 || mode==0))
-        printf("\nMasyvas 2 - nulinis (nenustatytas!)\n");
+    if(arr==NULL)
+        printf("\nMasyvas %s - nulinis (nenustatytas!)\n", masName);
 
-    if(mode==0 || mode==1)
+    printf("\n%s masyvo dabartinis dydis: %d", masName, curSiz);
+    printf("\n%s masyvo maksimalus dydis: %d\n", masName, maxSiz);
+    if(arr!=NULL)
     {
-        printf("\n1 masyvo dydis: %d\n", siz1);
-        if(arr1!=NULL)
-        {
-            printf("1 masyvo elementai:\n");
-            printArrayElements(arr1, siz1);
-        }
+        printf("%s masyvo elementai:\n", masName);
+        printArrayElements(arr, curSiz);
     }
-    if(mode==0 || mode==2)
-    {
-        if(mode==0)
-            printf("\n--------------------------");
-        printf("\n2 masyvo dydis: %d\n", siz2);
-        if(arr2!=NULL)
-        {
-            printf("2 masyvo elementai:\n");
-            printArrayElements(arr2, siz2);
-        }
-    }
+    printf("\n--------------------------");
 }
 
 int checkIfNull(int *arr1, int *arr2, int mode) //mode: 0 - both array, 1 - arr1, 2 - arr2
@@ -326,7 +339,7 @@ int main(int argc, char** argv) //set argument like this: /100
 
     int* arr1 = NULL;
     int* arr2 = NULL;
-    int siz1=0, siz2=0, run=1;
+    int siz1=0, maxSiz1=0, siz2=0, maxSiz2=0, run=1;
 
     while(run)
     {
@@ -335,56 +348,62 @@ int main(int argc, char** argv) //set argument like this: /100
 
         switch(command)
         {
-        case CMD_ENTER_ARR1:
+        case CMD_ENTER_ARR1: //sukuriam 1 masyva
             if(getArray(&arr1, &siz1, maxArray) != 0)
                 return -1;
-            showStatus(arr1, arr2, siz1, siz2, 1);
+            maxSiz1 = siz1;
+            showStatus(arr1, siz1, maxSiz1, "1");
             break;
 
-        case CMD_ENTER_ARR2:
+        case CMD_ENTER_ARR2: //sukuriam 2 masyva
             if(getArray(&arr2, &siz2, maxArray) != 0)
                 return -1;
-            showStatus(arr1, arr2, siz1, siz2, 2);
+            maxSiz2 = siz2;
+            showStatus(arr2, siz2, maxSiz2, "2");
             break;
 
         case CMD_CHANGE_ELEMS_1:
             if(!checkIfNull(arr1, arr2, 1))
-                changeArrayElements(arr1, &siz1, 0);
+                changeArrayElements(arr1, &siz1, maxSiz1, 0);
             break;
 
         case CMD_CHANGE_ELEMS_2:
             if(!checkIfNull(arr1, arr2, 2))
-                changeArrayElements(arr2, &siz2, 0);
+                changeArrayElements(arr2, &siz2, maxSiz2, 0);
             break;
 
         case CMD_ERASE_ELEMS_1:
             if(!checkIfNull(arr1, arr2, 1))
-                changeArrayElements(arr1, &siz1, 1);
+                changeArrayElements(arr1, &siz1, maxSiz1, 1);
             break;
 
         case CMD_ERASE_ELEMS_2:
             if(!checkIfNull(arr1, arr2, 2))
-                changeArrayElements(arr2, &siz2, 1);
+                changeArrayElements(arr2, &siz2, maxSiz2, 1);
             break;
 
         case CMD_INSERT_ELEMS_1:
             if(!checkIfNull(arr1, arr2, 1))
-                changeArrayElements(arr1, &siz1, 2);
+                changeArrayElements(arr1, &siz1, maxSiz1, 2);
             break;
 
         case CMD_INSERT_ELEMS_2:
             if(!checkIfNull(arr1, arr2, 2))
-                changeArrayElements(arr2, &siz2, 2);
+                changeArrayElements(arr2, &siz2, maxSiz2, 2);
             break;
 
         case CMD_STATUS:
-            showStatus(arr1, arr2, siz1, siz2, 0); break;
+            showStatus(arr1, siz1, maxSiz1, "1");
+            showStatus(arr2, siz2, maxSiz2, "2");
+            break;
 
         case CMD_ARR1_STATUS:
-            showStatus(arr1, arr2, siz1, siz2, 1); break;
+            showStatus(arr1, siz1, maxSiz1, "1");
+            break;
 
         case CMD_ARR2_STATUS:
-            showStatus(arr1, arr2, siz1, siz2, 2); break;
+            showStatus(arr2, siz2, maxSiz2, "2");
+            break;
 
         case CMD_CALCULATE:
             if(!checkIfNull(arr1, arr2, 0))
