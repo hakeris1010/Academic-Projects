@@ -1,3 +1,11 @@
+///--------------------------------------------///
+///  UI Implementation:                        ///
+///  - Command handler                         ///
+///  - Interger getting with validation        ///
+///  - Efficient stdin buffer clearing (flush) ///
+///  - Exitting a loop is easily done.         ///
+///--------------------------------------------///
+
 #include "interface.h"
 #include <stdio.h>
 
