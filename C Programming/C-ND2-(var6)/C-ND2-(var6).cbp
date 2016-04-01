@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="/100" />
+				<Option parameters="100" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -21,6 +21,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="100" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -33,11 +34,11 @@
 			<Add option="-Wall" />
 			<Add option="-std=c99" />
 		</Compiler>
-		<Unit filename="interface.c">
+		<Unit filename="src/interface.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="interface.h" />
-		<Unit filename="main.c">
+		<Unit filename="src/interface.h" />
+		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

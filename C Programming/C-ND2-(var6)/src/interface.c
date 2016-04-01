@@ -8,6 +8,7 @@
 
 #include "interface.h"
 #include <stdio.h>
+#include <string.h>
 
 //flush stdin.
 int clearBuffer()
@@ -37,7 +38,7 @@ int getNumWithValidation(const char *stringToWrite, int *num, int min, int max)
     while(1)
     {
         printf("%s", stringToWrite);
-        rc=scanf("%7d", num);     // maximum of 7 chars
+        rc=scanf("%7d", num);     // maximum of 7 chars.
 
         int clearRet = clearBuffer();
 

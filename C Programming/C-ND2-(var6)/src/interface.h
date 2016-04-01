@@ -1,7 +1,7 @@
 #ifndef INTERFACE_H_INCLUDED
 #define INTERFACE_H_INCLUDED
 
-//UI Commands
+//UI Commands:
 
 #define CMD_NONE            0
 #define CMD_HELP            1
@@ -19,12 +19,13 @@
 #define CMD_INSERT_ELEMS_2  13
 #define CMD_EXIT            14
 
-//Functions
+//Functions:
 
 int getCommand(int mode);
 void printArrayElements(int arr[], int len);
 int getNumWithValidation(const char *stringToWrite, int *num, int min, int max);
 int clearBuffer();
+void showHelp(int mode);
 
 
 #endif // INTERFACE_H_INCLUDED

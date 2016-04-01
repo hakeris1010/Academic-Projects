@@ -15,10 +15,10 @@
 #include <time.h>
 #include <string.h>  //for string funcs
 #include <stdbool.h> //bool type
-#include <limits.h> //for INT_MIN and INT_MAX
+#include <limits.h> //for INT_MIN and INT_MAX.
 #include "interface.h" //our UI functions (commands, validation, etc)
 
-#define VERSION "v0.1"
+#define VERSION "v0.3"
 #define DEBUG false  //macro for debugging, if true, prints debug info
 
 #define MAX_ARRAY_LENGHT 95 //Predefined val.
@@ -123,8 +123,8 @@ int getArrayElementsRandom(int arr[], int len, int a, int b, int mode) //Mode: 1
     int min=0, max=0;
     if(mode==1)
     {
-        if(getNumWithValidation("Iveskite maziausia rezi:\n>> ", &min, INT_MIN+1, INT_MAX-1)) return; //get reziai with validation
-        if(getNumWithValidation("Iveskite didziausia rezi:\n>> ", &max, min, INT_MAX-1)) return;
+        if(getNumWithValidation("Iveskite maziausia rezi:\n>> ", &min, INT_MIN+1, INT_MAX-1)) return 0; //get reziai with validation
+        if(getNumWithValidation("Iveskite didziausia rezi:\n>> ", &max, min, INT_MAX-1)) return 0;
 
         if(min>max)
         {
@@ -316,7 +316,7 @@ int checkIfNull(int *arr1, int *arr2, int mode) //mode: 0 - both array, 1 - arr1
     return isNull;
 }
 
-int main(int argc, char** argv) //set argument like this: /100
+int main(int argc, char** argv) //set argument like this: 100
 {
     srand(time(0)); //let's seed the random gen.
 
@@ -328,10 +328,11 @@ int main(int argc, char** argv) //set argument like this: /100
 
     if(argc > 1) //if program params are set, let's set up our MaxArray
     {
-        maxArray = (int)strtol(argv[1]+1, NULL, 10); //get param from char 1 (the second one) using strtol function (for better errcheck)
-        if(maxArray<=0 || maxArray==INT_MAX || argv[1][0]!='/') //if bad argument
+        char *endst;
+        maxArray = (int)strtol(argv[1], &endst, 10); //get param from char 1 (the second one) using strtol function (for better errcheck)
+        if(maxArray<=0 || maxArray==INT_MAX || (*endst)!=0) //if bad argument
         {
-            printf("Blogas parametras! (%s)\nNaudojimas: <path_to_executable> /max_size\n\n", argv[1]);
+            printf("Blogas parametras! (%s)\nNaudojimas: <path_to_executable> max_size\n\n", argv[1]);
             maxArray = MAX_ARRAY_LENGHT;
         }
     }
