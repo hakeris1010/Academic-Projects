@@ -29,10 +29,14 @@
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-std=c++11" />
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="avltree.cpp" />
+		<Unit filename="avltree.h" />
 		<Unit filename="debdefines.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="treestructs.cpp" />
 		<Unit filename="treestructs.h" />
 		<Unit filename="visualisation.h" />
 		<Unit filename="visualisation_console.cpp" />
