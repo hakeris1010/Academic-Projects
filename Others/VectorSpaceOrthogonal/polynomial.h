@@ -39,6 +39,7 @@ public:
     void create(PolynomialElement* elemen, int n);
     void clear();
     PolynomialEquation simplify();
+    PolynomialEquation sortByExponent(bool asc=true); //this
     bool elementGood(std::string &str, std::string &expo, std::string &coeff);
 
     PolynomialEquation operator* (const PolynomialEquation poly1);

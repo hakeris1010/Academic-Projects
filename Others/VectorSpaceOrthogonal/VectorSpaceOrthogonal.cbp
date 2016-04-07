@@ -32,7 +32,10 @@
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="interface.cpp" />
+		<Unit filename="interface.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="output.h" />
 		<Unit filename="polynomial.cpp" />
 		<Unit filename="polynomial.h" />
 		<Extensions>

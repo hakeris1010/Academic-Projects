@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include "output.h"
 
 #define DEBUG_INTEGRAL false
 
@@ -64,6 +65,11 @@ PolynomialEquation PolynomialEquation::simplify()
     return *this;
 }
 
+PolynomialEquation PolynomialEquation::sortByExponent(bool asc) //this
+{
+    return *this;
+}
+
 PolynomialEquation PolynomialEquation::operator* (const PolynomialEquation poly1)
 {
     std::vector<PolynomialElement> temp(elems.size() * poly1.elems.size()); //for optimization.
@@ -115,7 +121,7 @@ void PolynomialEquation::printPolynom(PolynomialEquation eq, int mode)
     if(mode==0 || mode==2)
     {
         for(int i=0; i<eq.elems.size(); i++)
-            printf("[%d]: co=%g, exp=%g\n", i, eq.elems[i].coeff, eq.elems[i].exponent);
+            mout.cPrintf("[%d]: co=%g, exp=%g\n", i, eq.elems[i].coeff, eq.elems[i].exponent);
     }
     if(mode==1 || mode==2)
     {
@@ -123,31 +129,31 @@ void PolynomialEquation::printPolynom(PolynomialEquation eq, int mode)
         {
             //if(ai->coeff != 0)
             {
-                printf(" ");
+                mout.cPrintf(" ");
                 if(ai>eq.elems.begin())
                 {
-                    if(roundDouble(ai->coeff, ROUND_DOUBLE)>0) printf("+ ");
+                    if(roundDouble(ai->coeff, ROUND_DOUBLE)>0) mout.cPrintf("+ ");
                     else if(roundDouble(ai->coeff, ROUND_DOUBLE)<0)
                     {
                         (ai->coeff) *= -1;
-                        printf("- ");
+                        mout.cPrintf("- ");
                     }
                 }
 
                 if(roundDouble(ai->coeff, ROUND_DOUBLE) != 1)
-                    printf("%g", ai->coeff);
+                    mout.cPrintf("%g", ai->coeff);
 
                 if(roundDouble(ai->exponent, ROUND_DOUBLE) != 0)
                 {
-                    printf("x");
+                    mout.cPrintf("x");
                     if(roundDouble(ai->exponent, ROUND_DOUBLE) != 1)
-                        printf("^%g", ai->exponent);
+                        mout.cPrintf("^%g", ai->exponent);
                 }
                 else if(roundDouble(ai->coeff, ROUND_DOUBLE) == 1)
-                    printf("1");
+                    mout.cPrintf("1");
             }
         }
-        printf("\n");
+        mout.cPrintf("\n");
     }
 }
 
@@ -169,7 +175,7 @@ bool PolynomialEquation::getIntegralFromPolynom(PolynomialEquation poly, double 
         if(roundDouble( ai->coeff, ROUND_DOUBLE ) != 0)
             (*result) += pow(r2, roundDouble( ai->exponent, ROUND_DOUBLE )) * (ai->coeff);
 
-        if(dbg) printf("Loop no.%d: *result=%g\n", (int)(ai-poly.elems.begin()), *result);
+        if(dbg) mout.cPrintf("Loop no.%d: *result=%g\n", (int)(ai-poly.elems.begin()), *result);
     }
 
     for(auto ai = poly.elems.begin(); ai < poly.elems.end(); ++ai)
@@ -180,12 +186,12 @@ bool PolynomialEquation::getIntegralFromPolynom(PolynomialEquation poly, double 
         if(roundDouble( ai->coeff, ROUND_DOUBLE ) != 0)
             (*result) -= pow(r1, roundDouble( ai->exponent, ROUND_DOUBLE )) * (ai->coeff);
 
-        if(dbg) printf("Loop no.%d: *result=%g\n", (int)(ai-poly.elems.begin()), *result);
+        if(dbg) mout.cPrintf("Loop no.%d: *result=%g\n", (int)(ai-poly.elems.begin()), *result);
     }
 
-    if(dbg) printf("Integral:\n");
+    if(dbg) mout.cPrintf("Integral:\n");
     if(dbg) printPolynom(poly);
-    if(dbg) printf("Result: %g\n\n", *result);
+    if(dbg) mout.cPrintf("Result: %g\n\n", *result);
 
     return true;
 }
