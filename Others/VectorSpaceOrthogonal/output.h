@@ -1,11 +1,29 @@
 #ifndef OUTPUT_H_INCLUDED
 #define OUTPUT_H_INCLUDED
 
+///================ The Next Gen Output ================///
+///- - - - - - - -    By Hakeris1010     - - - - - - - -///
+/// Features:                                           ///
+/// - Header-only library                               ///
+/// - Template-based C++ "cout" style output            ///
+/// - C Printf style output, based on VA stdarg lib.    ///
+/// - Enum based mode changer.                          ///
+/// - Modes:                                            ///
+///   - To File                                         ///
+///   - To Screen                                       ///
+///   - No Output                                       ///
+///                                                     ///
+/// Bugs:                                               ///
+/// - None by now.                                      ///
+///=====================================================///
+
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
 #include <cstdio>
+
+#define H_OUTPUTTER_VERSION "v0.2"
 
 enum OutMode {
     No_Output = 0,
@@ -42,57 +60,60 @@ public:
     bool getCloseFile(){ return closeFileEachTime; }
 
     template<typename T>
-    Outputter& operator<< (const T val)
+    Outputter& operator<< (const T val);
+
+bool cPrintf(const char* format, ... )
+{
+    if(outpMode==OutMode::No_Output)
+        return false;
+
+    va_list args; //initialize arg list
+    va_start(args, format);
+
+    if(outpMode==OutMode::To_Screen)
+        vprintf(format, args);
+
+    else if(outpMode==OutMode::To_File)
     {
-        if(outpMode==To_File)
+        if(ftell(cFile)<0) //if file is closed
         {
-            if(!outp.is_open())
-                outp.open(outFileName.c_str());
-
-            outp << val;
-
-            if(closeFileEachTime)
-                outp.close();
-        }
-        else if(outpMode==To_Screen)
-        {
-            std::cout<< val ;
+            cFile = fopen(outFileName.c_str(), "w");
+            if(!cFile)
+                return false; //Error happen'd
         }
 
-        return *this;
+        vfprintf(cFile, format, args);
+
+        if(closeFileEachTime)
+            fclose(cFile);
     }
 
-    bool cPrintf(const char* format, ... )
-    {
-        if(outpMode==OutMode::No_Output)
-            return false;
+    va_end(args); //exit arg list
 
-        va_list args; //initialize arg list
-        va_start(args, format);
-
-        if(outpMode==OutMode::To_Screen)
-            vprintf(format, args);
-
-        else if(outpMode==OutMode::To_File)
-        {
-            if(ftell(cFile)<0) //if file is closed
-            {
-                cFile = fopen(outFileName.c_str(), "w");
-                if(!cFile)
-                    return false; //Error happen'd
-            }
-
-            vfprintf(cFile, format, args);
-
-            if(closeFileEachTime)
-                fclose(cFile);
-        }
-
-        va_end(args); //exit arg list
-
-        return true;
-    }
+    return true;
+}
 };
+
+template<typename T>
+Outputter& Outputter::operator<< (const T val)
+{
+    if(outpMode==To_File)
+    {
+        if(!outp.is_open())
+            outp.open(outFileName.c_str());
+
+        outp << val;
+
+        if(closeFileEachTime)
+            outp.close();
+    }
+    else if(outpMode==To_Screen)
+    {
+        std::cout<< val ;
+    }
+
+    return *this;
+}
 
 extern Outputter mout;
 

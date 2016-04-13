@@ -33,33 +33,18 @@ double roundDouble2(double d, int n = 6)
 }
 
 //Pagrindine skaiciavimo funkcija, apskaiciuoja visa ortogonaline sistema.
-int ComputeOrthogonals(PolynomialEquation *orthogonalEquations, int n, double integ_r1, double integ_r2, int mode=0) //mode: 0 - print start&result, 1 - print result
+int ComputeOrthogonals(PolynomialEquation *startEquations, int n, double integ_r1, double integ_r2, int mode=0) //mode: 0 - print start&result, 1 - print result
 {
     bool dbg = DEBUG_COMP_ORTHOGS;
     if(dbg) mout.cPrintf("MainRunner Start!\n");
 
     int startTime = GetTickCount();
 
-    mout.cPrintf("i1= %g, i2=%g\n\nStart Equations (%d):\n", integ_r1, integ_r2, n);
-    if(mode==0)
-    {
-        for(int i=0; i<n; i++)
-        {
-            mout.cPrintf("[%d]: ", i);
-            PolynomialEquation::printPolynom(orthogonalEquations[i]);
-        }
-        mout.cPrintf("\n");
-    }
-
-    int orthCounter=0;
+    PolynomialEquation orthogonalEquations[n];
 
     for(int i=0; i<n; i++)
     {
-        if(!dbg) system("cls"); //clear screen
-        printf("Calculating... polynom no.%d  [%g %%]\n", i, roundDouble2( (pow(2, i+1)*100) / pow(2, n), 2 ) ); //x = (2^(i+1) *100) / 2^n
-
-        //funcs:
-        //(pow(2, i+1)*100) / pow(2, n) ;
+        orthogonalEquations[i] = startEquations[i];
 
         if(dbg) mout.cPrintf("\nLoop no. %d. Polynom before:\n", i);
         if(dbg) PolynomialEquation::printPolynom(orthogonalEquations[i]);
@@ -90,10 +75,26 @@ int ComputeOrthogonals(PolynomialEquation *orthogonalEquations, int n, double in
 
         if(dbg) mout.cPrintf("Polynom after:\n");
         if(dbg) PolynomialEquation::printPolynom(orthogonalEquations[i], 2);
+
+        if(!dbg) system("cls"); //clear screen
+        printf("Calculating... polynom no.%d  [%g %%]\n", i, roundDouble2( (pow(2, i+1)*100) / pow(2, n), 2 ) ); //x = (2^(i+1) *100) / 2^n
+
+        //funcs:
+        //(pow(2, i+1)*100) / pow(2, n) ;
     }
 
-    mout.cPrintf("\n\n===============================\n\nOrtogonizuoti vektoriai:\n\n");
+    mout.cPrintf("\nIntegralo reziai:\ni1= %g, i2=%g\n\nStartiniai polinomai (%d):\n", integ_r1, integ_r2, n);
+    if(mode==0)
+    {
+        for(int i=0; i<n; i++)
+        {
+            mout.cPrintf("[%d]: ", i);
+            PolynomialEquation::printPolynom(startEquations[i]);
+        }
+        mout.cPrintf("\n");
+    }
 
+    mout.cPrintf("\n\n===============================\n\nOrtogonalizuoti polinomai:\n\n");
     for(int i=0; i<n; i++)
     {
         mout.cPrintf("[%d]: ", i);
@@ -121,7 +122,10 @@ void MainRunner()
     int n=10, int_r1=-1, int_r2=1;
 
     if(ConsoleFuncs::getYesNo("Ar norite surasyti savo paramus? [y/n]  "))
+    {
+        //printf("  Writing our own params.\n");
         getData(&n, &int_r1, &int_r2);
+    }
 
     PolynomialEquation eqs[n];
 
@@ -138,11 +142,10 @@ void MainRunner()
     for(int i=0; i<n; i++)
     {
         //mode 1 : 1, x, x^2, x^3, ...
-        PolynomialElement tmpElem;
-        tmpElem.coeff = 1; //set the first element (x^i).
-        tmpElem.exponent = i;
 
-        eqs[i].elems.push_back((PolynomialElement){1,i});
+        eqs[i].elems.push_back(PolynomialElement(1,(double)i));
+
+        //PolynomialEquation::printPolynom(eqs[i]); //atprintinam
     }
 
     ComputeOrthogonals(eqs, n, int_r1, int_r2, 0);
@@ -187,6 +190,7 @@ int main()
 {
     if(ConsoleFuncs::getYesNo("Ar rasyti duomenis i faila? [y/n]  "))
     {
+        //printf("  Writing to file.\n");
         mout.setOutpMode(OutMode::To_File);
         mout.setFileName("CalcOutput.txt");
     }

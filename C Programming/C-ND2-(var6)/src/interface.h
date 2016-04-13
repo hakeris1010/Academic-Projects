@@ -26,6 +26,7 @@ void printArrayElements(int arr[], int len);
 int getNumWithValidation(const char *stringToWrite, int *num, int min, int max);
 int clearBuffer();
 void showHelp(int mode);
+int getYesNo(const char* str);
 
 
 #endif // INTERFACE_H_INCLUDED

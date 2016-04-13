@@ -126,19 +126,19 @@ int getCommand(int mode)
     return CMD_NONE;
 }
 
-int getYesNo(const char* str) //self-explaining
+int getYesNo(const char* str)
 {
     printf("%s",str);
 
-    char c;
-    scanf("%c", &c);
-    if((c=='y' || c=='Y') && !clearBuffer())
+    char c[1];
+    scanf("%1s", c);
+    if((c[0]=='y' || c[0]=='Y') && !clearBuffer())
         return 1;
 
     return 0;
 }
 
-void showHelp(int mode)
+void showHelp(int mode) //parodo pagalba
 {
     if(mode==1)
     {

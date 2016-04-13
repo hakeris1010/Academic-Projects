@@ -17,6 +17,7 @@ int ConsoleFuncs::clearBuffer()
     char exitBuff[5]={0,0,0,0,0}; //for "exit"
     char c;
     int wereChars=0;
+
     while((c=getchar())!='\n' && c!=EOF) //let's clear a buffer!
     {
         if(wereChars<4)
@@ -26,7 +27,9 @@ int ConsoleFuncs::clearBuffer()
     if(!strcmp(exitBuff, "exit")) //found "exit"
         return 2;
 
-    return (wereChars==0 ? 0 : 1); //let's return if there were unised chars in a buffer (0 = good)
+    //if(wereChars!=0) printf("[clearBuffer()] were chars.\n");
+
+    return (wereChars==0 ? 0 : 1); //let's return if there were unused chars in a buffer (0 = good)
 }
 
 //Function to get a number with validation included - no bad values are returned!
@@ -68,9 +71,12 @@ int ConsoleFuncs::getYesNo(const char* str) //self-explaining
 {
     printf("%s",str);
 
-    char c;
-    scanf("%c", &c);
-    if((c=='y' || c=='Y') && !clearBuffer())
+    char c[1];
+    scanf("%s", c);
+
+    //printf("\n[getYesNo] scanf got: %c (%d)\n\n", c[0], (int)c[0]);
+
+    if((c[0]=='y' || c[0]=='Y') && !clearBuffer())
         return 1;
 
     return 0;
