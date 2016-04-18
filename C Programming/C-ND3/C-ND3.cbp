@@ -30,11 +30,12 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="-std=c99" />
 		</Compiler>
-		<Unit filename="linkedlist.c">
+		<Unit filename="deque.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="linkedlist.h" />
+		<Unit filename="deque.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
