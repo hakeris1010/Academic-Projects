@@ -2,22 +2,28 @@
 #include <stdio.h>
 #include "deque.h"
 
-int main()
+void paddingTest()
 {
-    printf("Calm down, just testing!\n\n");
-
-    int newSize=0, paddingFact=8;
+    int newSize=0, paddingFact=2;
     //newSize += (newSize/paddingFact + 1)*paddingFact - newSize;
 
     for(int i=0; i<25; i++)
     {
         newSize=i;
-        printf("size: %d, add: %d, ", newSize, (newSize/paddingFact + 1)*paddingFact - newSize);
+        int add = (newSize/paddingFact + 1)*paddingFact - newSize;
+        printf("size: %d, add: %d, ", newSize, add);
 
-        newSize += (newSize/paddingFact + 1)*paddingFact - newSize;
+        newSize += add;
 
         printf("newSize: %d\n", newSize);
     }
+}
+
+int main()
+{
+    printf("Calm down, just testing!\n\n");
+
+    dequePlayground1();
 
     return 0;
 }
