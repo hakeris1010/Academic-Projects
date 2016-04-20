@@ -1,5 +1,5 @@
-#ifndef LINKEDLIST_H_INCLUDED
-#define LINKEDLIST_H_INCLUDED
+#ifndef DEQUE_H_INCLUDED
+#define DEQUE_H_INCLUDED
 
 struct Deque
 {
@@ -11,9 +11,9 @@ struct Deque
 int create(struct Deque* d);
 int create_from_array(struct Deque* d, int n, const void** arr);
 
-int set_callbacks(struct Deque* d, int (*_elemDeallocatorCallback)(void** ptToElem), int (*_evaluatorCallback)(const void* elem), void* (*_allocatorCallback)(void* address, ... ) );
+int set_callbacks(struct Deque* d, int (*_deallocatorCallback)(void* elem), int (*_evaluatorCallback)(const void* elem), void* (*_allocatorCallback)(void* address, ... ) );
 
-void clear_callback(struct Deque* d, int (*_deallocator)(void**));
+void clear_callback(struct Deque* d, int (*_deallocator)(void*));
 void clear(struct Deque* d);
 
 //standard
@@ -39,4 +39,4 @@ int linear_search(struct Deque* d, const void* elemToSearch);
 
 void dequePlayground1();
 
-#endif // LINKEDLIST_H_INCLUDED
+#endif // DEQUE_H_INCLUDED
