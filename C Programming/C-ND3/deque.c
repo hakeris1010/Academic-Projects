@@ -14,9 +14,15 @@
 #define DEQ_DEFAULT_BALLANCE_FACT  4
 #define DEQ_DEFAULT_ALLOC_PADDING  8
 
+struct VoidPtrElement
+{
+    void* elem;
+    char isAlive;
+};
+
 struct VoidArray //Array Structure
 {
-    void** array;
+    struct VoidPtrElement* array;
     int maxSize;
     int curSize;
     int padding;
@@ -40,9 +46,25 @@ struct InternalStructs
     int (*evaluatorCallback)(void* elem);
 };
 
+//VoidPtrElem section
+char initVoidPtrElem(struct VoidPtrElement* st, const void* _elem, char _isAlive)
+{
+    if(!st) return 1;
+    st->elem = _elem;
+    st->isAlive = _isAlive; //not deleted
+}
+
+struct VoidPtrElement createVoidPtrElement(const void* _elem, char _isAlive)
+{
+    struct VoidPtrElement el;
+    el.elem = _elem;
+    el.isAlive = _isAlive;
+    return el;
+};
+
 //VoidArray Section
 
-int initVoidArray(struct VoidArray* arr, int padding)
+char initVoidArray(struct VoidArray* arr, int padding)
 {
     if(!arr) return -1;
 
@@ -54,7 +76,7 @@ int initVoidArray(struct VoidArray* arr, int padding)
     return 0;
 }
 
-int initVoidArrayPtr(struct VoidArray** arr, int elemCount, int padding, char mode) //mode: 0-malloc, 1-realloc
+char initVoidArrayPtr(struct VoidArray** arr, int elemCount, int padding, char mode) //mode: 0-malloc, 1-realloc
 {
     DEBLOG("[InitVoidArrPtr]: arr (dpp)= %p\n", arr);
     if(mode==0)
@@ -85,7 +107,7 @@ const struct VoidArray createVoidArray(int padding)
     return arr;
 }
 
-int fixBadVoidArrayParams(struct VoidArray* arr)
+char fixBadVoidArrayParams(struct VoidArray* arr)
 {
     if(arr==NULL) return -1;
     int badVal=0;
@@ -109,33 +131,45 @@ int fixBadVoidArrayParams(struct VoidArray* arr)
     return badVal;
 }
 
+void nullifyEmptyArray(struct VoidArray* arr)
+{
+    if(!arr ? 1 : !(arr->array)) return;
+
+    for(int i=0; i<arr->maxSize; i++)
+    {
+        (arr->array)[i] = createVoidPtrElement(NULL, 0); //Inactive (Dead)
+    }
+}
+
 int reallocateVoidArray(struct VoidArray* arr, int newSize, int padding) //returns new MaxSize
 {
     if(arr==NULL) return -1;
 
     newSize += (newSize/padding + 1)*padding - newSize; //add a padding (if newSize=14, and padding=8, add 2, newSize=16).
 
-    arr->array = (void**) realloc (arr->array, sizeof(void*) * newSize);
+    arr->array = (struct VoidPtrElement*) realloc (arr->array, sizeof(struct VoidPtrElement) * newSize); //allocate new block o' memory
     arr->maxSize = newSize; //set new maxSize - super important!
     arr->padding = padding;
+
+    nullifyEmptyArray(arr);
 
     return newSize; //this is new MaxSize;
 }
 
-void clearVoidArray(struct VoidArray* arr, int (*deallocatorCallback)(void* elem))
+void clearVoidArray(struct VoidArray* arr, int (*deallocatorCallback)(void* elem)) //BUG
 {
-    if(arr==NULL) return;
+    if(!arr ? 1 : !(arr->array)) return;
 
-    for(int i=0; i<arr->curSize; i++) //free until curSize
+    for(int i=0; i<arr->maxSize; i++) //free until curSize
     {
         DEBLOG("[clearVoidArray]: freeing elem no. %d\n", i);
-        if(arr->array[i])
+        if((arr->array[i]).isAlive) //if alive
         {
             if(deallocatorCallback) //jei persiustas geras kolbekas (ne NUL), iskvieciam ji kad isvalytu elementa.
             {
-                (*deallocatorCallback)( arr->array[i] );
+                (*deallocatorCallback)( (arr->array[i]).elem );
             }
-            free(arr->array[i]);
+            free((arr->array[i]).elem);
         }
     }
     free(arr->array);
@@ -143,7 +177,7 @@ void clearVoidArray(struct VoidArray* arr, int (*deallocatorCallback)(void* elem
     initVoidArray(arr, arr->padding);
 }
 
-int copyVoidArrays(struct VoidArray* dest, const struct VoidArray src)
+char copyVoidArrays(struct VoidArray* dest, const struct VoidArray src)
 {
     if(dest==NULL) return 1;
 
@@ -164,7 +198,7 @@ int copyVoidArrays(struct VoidArray* dest, const struct VoidArray src)
 }
 
 //adding
-int addElemToVoidArray(struct VoidArray* arr, const void* elem, char mode) //mode: 0 - reallocate array if no place, 1 - return if no place
+char addElemToVoidArray(struct VoidArray* arr, const void* elem, char mode) //mode: 0 - reallocate array if no place, 1 - return if no place
 {
     if(arr==NULL) return 1;
 
@@ -181,7 +215,7 @@ int addElemToVoidArray(struct VoidArray* arr, const void* elem, char mode) //mod
     }
     if(arr->curSize < arr->maxSize)
     {
-        arr->array[arr->curSize] = elem;
+        arr->array[arr->curSize] = createVoidPtrElement(elem, 1);
         (arr->curSize)++;
     }
 
@@ -189,9 +223,19 @@ int addElemToVoidArray(struct VoidArray* arr, const void* elem, char mode) //mod
 }
 
 //deleting
-int removeElemFromVoidArray(struct VoidArray* arr, int pos)
+char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos)
 {
-    //cool stuff
+    if(!arr) return 1;
+    if(!(arr->array) || arr->curSize==0 || arr->maxSize==0) return 2;
+    if(pos >= arr->curSize) return 3;
+
+    for(int i = pos; i < arr->curSize - 1; i++)
+    {
+        arr->array[i] = arr->array[i+1];
+    }
+    (arr->curSize)--;
+
+    return 0;
 }
 
 //Array Shower
@@ -423,7 +467,7 @@ int create_from_array(struct Deque* d, int n, const void** arr) //TODO
     {
         addElemToVoidArray(((struct InternalStructs*)(d->internals))->frontArr, arr[i], 0 );
     }
-    ballanceArrays( (struct InternalStructs*)(d->internals) );
+    ballanceArrays( (struct InternalStructs*)(d->internals), 0 );
 
     return 0;
 }
@@ -557,7 +601,7 @@ void dequePlayground1()
     showVoidArray(*(st.backArr), 0);
 
     DEBLOG("Ballance Arrays...\n");
-    ballanceArrays(&st);
+    ballanceArrays(&st, 0);
 
     DEBLOG("\n--------------------\nfrontArr:\n");
     showVoidArray(*(st.frontArr), 1);
