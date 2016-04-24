@@ -51,10 +51,16 @@ Temporary Items
 *.layout
 *.depend
 
+#VS files
+*.user
+#*.sln
+#*.csproj
+
 # Compiler-Generated files
 *.o
 *.exe
 
 #Directories
-**/**/bin/
-**/**/obj/
+bin/
+obj/
+.vs/

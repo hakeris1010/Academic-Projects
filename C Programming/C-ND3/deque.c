@@ -26,6 +26,7 @@ struct VoidArray //Array Structure
     int maxSize;
     int curSize;
     int padding;
+    char areCopies;
 };
 
 //implementacine struktura.
@@ -72,6 +73,7 @@ char initVoidArray(struct VoidArray* arr, int padding)
     arr->curSize = 0;
     arr->maxSize = 0;
     arr->padding = padding;
+    arr->areCopies = 0;
 
     return 0;
 }
@@ -93,6 +95,7 @@ char initVoidArrayPtr(struct VoidArray** arr, int elemCount, int padding, char m
     (*arr)->curSize = 0;
     (*arr)->maxSize = 0;
     (*arr)->padding = padding;
+    (*arr)->areCopies = 0;
 
     return 0;
 }
@@ -104,6 +107,7 @@ const struct VoidArray createVoidArray(int padding)
     arr.curSize=0;
     arr.maxSize=0;
     arr.padding=padding;
+    arr.areCopies = 0;
     return arr;
 }
 
@@ -162,7 +166,7 @@ void clearVoidArray(struct VoidArray* arr, int (*deallocatorCallback)(void* elem
 
     for(int i=0; i<arr->maxSize; i++) //free until curSize
     {
-        DEBLOG("[clearVoidArray]: freeing elem no. %d\n", i);
+        DEBLOG("[clearVoidArray]: freeing elem no. %d: isAlive: %d\n", i, (arr->array[i]).isAlive);
         if((arr->array[i]).isAlive) //if alive
         {
             if(deallocatorCallback) //jei persiustas geras kolbekas (ne NUL), iskvieciam ji kad isvalytu elementa.
@@ -223,16 +227,28 @@ char addElemToVoidArray(struct VoidArray* arr, const void* elem, char mode) //mo
 }
 
 //deleting
-char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos)
+char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos, int (*deallocatorCallback)(void* elem))
 {
+    printf("[removeElemFromVoidArray]: pos= %d\n", pos);
     if(!arr) return 1;
     if(!(arr->array) || arr->curSize==0 || arr->maxSize==0) return 2;
     if(pos >= arr->curSize) return 3;
+
+    if(arr->areCopies)
+    {
+        if(deallocatorCallback)
+            deallocatorCallback( ((arr->array)[pos]).elem ); //free that.
+    }
 
     for(int i = pos; i < arr->curSize - 1; i++)
     {
         arr->array[i] = arr->array[i+1];
     }
+    if(arr->areCopies)
+    {
+        //kill last
+    }
+
     (arr->curSize)--;
 
     return 0;
@@ -240,16 +256,17 @@ char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos)
 
 //Array Shower
 
-void showVoidArray(const struct VoidArray arr, char mode) //mode: 0 - from beg to end, 1 - reverse
+void showVoidArray(const struct VoidArray arr, char mode) //mode: 0 - from beg to end, 1 - reverse, 2 - all from beg to end, 3 - all reverse
 {
     DEBLOG("maxSize: %d\ncurrSize: %d\npadding: %d\nelems:\n", arr.maxSize, arr.curSize, arr.padding);
     if(!arr.array){ DEBLOG("NULL!\n"); }
     else
     {
-        for(int i=0; i<arr.curSize; i++)
+        unsigned int until = (mode>1 ? arr.maxSize : arr.curSize);
+        for(int i=0; i<until; i++)
         {
-            if(mode==0) DEBLOG(" [%d]: %p\n", i, arr.array[i]);
-            else if(mode==1) DEBLOG(" [%d]: %p\n", arr.curSize-1 - i, arr.array[arr.curSize-1 - i]);
+            if(!(mode%2)) DEBLOG(" [%d]: %p, isAlive: %d\n", i, arr.array[i].elem, arr.array[i].isAlive);
+            else DEBLOG(" [%d]: %p, isAlive: %d\n", until-1 - i, arr.array[until-1 - i].elem, arr.array[until-1 - i].isAlive);
         }
     }
     DEBLOG("\n");
@@ -334,7 +351,8 @@ int ballanceArrays(struct InternalStructs* inst, char mode) //mode: 0 - standart
 
         for(int j=0; j<pushCount; j++) //ReArrange! (Perstumdom masyvus per pushCount vietu)
         {
-            for(int i = inst->backArr->curSize+pushCount-1; i > -1*(inst->frontArr->curSize); i--) //from the smaller arr. end to the bigger a. end
+            int i;
+            for(i = inst->backArr->curSize+pushCount-1; i > -1*(inst->frontArr->curSize); i--) //from the smaller arr. end to the bigger a. end
             {
                 if(i>=inst->backArr->maxSize || i<=-1*(inst->frontArr->maxSize)) //Even more ErrChecking!
                 {
@@ -351,10 +369,11 @@ int ballanceArrays(struct InternalStructs* inst, char mode) //mode: 0 - standart
                 else
                     (inst->frontArr->array)[(-1*i) - 1] = (inst->frontArr->array)[-1*i];
             }
+            removeElemFromVoidArray(inst->frontArr, -1*i -1, inst->deallocatorCallback);
         }
 
         inst->backArr->curSize  += pushCount;
-        inst->frontArr->curSize -= pushCount;
+        //inst->frontArr->curSize -= pushCount;
     }
     else if(diff <= -1*(inst->ballanceFactor)) //back larger
     {
@@ -369,7 +388,8 @@ int ballanceArrays(struct InternalStructs* inst, char mode) //mode: 0 - standart
 
         for(int j=0; j<pushCount; j++) //ReArrange! (Perstumdom masyvus per pushCount vietu)
         {
-            for(int i = inst->frontArr->curSize+pushCount-1; i > -1*(inst->backArr->curSize); i--) //from the smaller arr. end to the bigger a. end
+            int i;
+            for(i = inst->frontArr->curSize+pushCount-1; i > -1*(inst->backArr->curSize); i--) //from the smaller arr. end to the bigger a. end
             {
                 if(i>=inst->backArr->maxSize || i<=-1*(inst->frontArr->maxSize)) //Even more ErrChecking!
                 {
@@ -386,50 +406,14 @@ int ballanceArrays(struct InternalStructs* inst, char mode) //mode: 0 - standart
                 else
                     (inst->backArr->array)[(-1*i) - 1] = (inst->backArr->array)[-1*i];
             }
+            removeElemFromVoidArray(inst->backArr, -1*i -1, inst->deallocatorCallback);
         }
 
-        inst->backArr->curSize  -= pushCount;
+        //inst->backArr->curSize  -= pushCount;
         inst->frontArr->curSize += pushCount;
     }
     else
         DEBLOG("[ballanceArrays]: No ballancing needed!\n");
-
-    //if(whichArr==0) return pushCount;
-    //TODO: check if arr->curSize + pushCount > arr->maxSize && arr->curSize - pushCount < 0
-
-    //Too many Palyginim's in a loop! More efficient to put it into different If's.
-
-    /*for(int j=0; j<pushCount; j++) //ReArrange! (Perstumdom masyvus per pushCount vietu)
-    {
-        for(int i = (whichArr==1 ? inst->backArr->curSize+pushCount-1 : inst->frontArr->curSize+pushCount-1);
-                i > (whichArr==1 ? -1*(inst->frontArr->curSize)+1 : -1*(inst->backArr->curSize)+1 );  i--) //from the smaller arr. end to the bigger a. end
-        {
-            if(whichArr==1 ? (i>=inst->backArr->maxSize || i<=inst->frontArr->maxSize+1) :
-               (i>=inst->frontArr->maxSize || i<=inst->backArr->maxSize+1) ) //Even more ErrChecking!
-            {
-                DEBLOG("[ballanceArrays]: loop of j=%d, i=%d, OverFlow!!\n", j, i);
-                break;
-            }
-
-            if(i>0)
-                (whichArr==1 ? ((inst->backArr->array)[i] = (inst->backArr->array)[i-1]) : ((inst->frontArr->array)[i] = (inst->frontArr->array)[i-1]));
-            else if(i==0)
-                (whichArr==1 ? ((inst->backArr->array)[i] = (inst->frontArr->array)[0])  : ((inst->frontArr->array)[i] = (inst->backArr->array)[0]));
-            else
-                (whichArr==1 ? ((inst->frontArr->array)[(-1*i) - 1] = (inst->frontArr->array)[-1*i]) : ((inst->backArr->array)[(-1*i) - 1] = (inst->backArr->array)[-1*i]) );
-        }
-    }
-
-    if(whichArr==1) //update curSize's
-    {
-        inst->backArr->curSize  += pushCount;
-        inst->frontArr->curSize -= pushCount;
-    }
-    if(whichArr==2)
-    {
-        inst->backArr->curSize  -= pushCount;
-        inst->frontArr->curSize += pushCount;
-    }*/
 
     if(mode==1)
     {
@@ -592,7 +576,8 @@ void dequePlayground1()
 
         addElemToVoidArray(st.backArr, in, 0);
     }
-    DEBLOG("\nclear FrontArr...\n");
+
+    DEBLOG("\nClear frontArr.\n");
     clearVoidArray(st.frontArr, NULL);
 
     DEBLOG("\nfrontArr:\n");
@@ -604,12 +589,12 @@ void dequePlayground1()
     ballanceArrays(&st, 0);
 
     DEBLOG("\n--------------------\nfrontArr:\n");
-    showVoidArray(*(st.frontArr), 1);
+    showVoidArray(*(st.frontArr), 3);
     DEBLOG("backArr:\n");
-    showVoidArray(*(st.backArr), 0);
+    showVoidArray(*(st.backArr), 2);
 
-    DEBLOG("\nClearing InternalStructs st.\n");
-    clearInternalStructs(&st);
+    //DEBLOG("\nClearing InternalStructs st.\n");
+    //clearInternalStructs(&st);
 
     DEBLOG("\nPlayground ending.\n");
     DEBLOG("Nya :3\n");
