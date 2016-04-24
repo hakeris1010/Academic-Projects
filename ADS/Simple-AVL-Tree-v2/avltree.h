@@ -2,28 +2,29 @@
 #define AVLTREE_H_INCLUDED
 
 #include <vector>
-#include <string>
-#include <memory>
+#include "treenode.h"
 
 template<typename T>
-class TreeStruct
+class AVLTree
 {
-protected:
-    std::vector< std::shared_ptr<TreeStruct<T>> > parents;
-    std::vector< std::shared_ptr<TreeStruct<T>> > children;
-    T value;
+private:
+    TreeNode<T> root;
+    int elemCount = 0;
 
 public:
-    TreeStruct();
-    TreeStruct(T value, std::vector< std::shared_ptr<TreeStruct<T>> > parents, std::vector< std::shared_ptr<TreeStruct<T>> > children);
-    ~TreeStruct();
+    AVLTree();
+    AVLTree(std::vector<T> elems);
+    AVLTree(TreeNode<T> root);
+    ~AVLTree();
 
-    T getValue();
-    void setValue(T newVal);
-    std::shared_ptr<TreeStruct<T>> getParent( int nom = 0 );
-    std::shared_ptr<TreeStruct<T>> getChild( int nom );
+    TreeNode<T> getRoot();
+    void setRoot(TreeNode<T> st);
+
+    void addElement(T val);
+    void deleteElement(T val);
+    void ballanceTree(TreeNode<T>* tr);
+    TreeNode<T>* rotateLeft(TreeNode<T>* tr);
+    TreeNode<T>* rotateRight(TreeNode<T>* tr);
 };
-
-
 
 #endif // AVLTREE_H_INCLUDED

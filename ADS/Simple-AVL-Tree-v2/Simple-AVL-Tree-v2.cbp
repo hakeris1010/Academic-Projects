@@ -35,6 +35,8 @@
 		<Unit filename="avltree.cpp" />
 		<Unit filename="avltree.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="treenode.cpp" />
+		<Unit filename="treenode.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

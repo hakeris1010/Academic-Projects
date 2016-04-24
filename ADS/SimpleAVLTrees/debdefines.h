@@ -1,6 +1,0 @@
-#ifndef DEBDEFINES_H_INCLUDED
-#define DEBDEFINES_H_INCLUDED
-
-#define DEBUG true
-
-#endif // DEBDEFINES_H_INCLUDED
