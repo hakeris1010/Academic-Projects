@@ -48,17 +48,17 @@ namespace ADS_3_AVL_TREES
         //ballancing
         public TreeNode<T> rotateLeft(TreeNode<T> p)
         {
-
+            return p;
         }
 
         public TreeNode<T> rotateRight(TreeNode<T> p)
         {
-
+            return p;
         }
 
         public bool ballance(TreeNode<T> start)
         {
-
+            return true;
         }
     }
 }
