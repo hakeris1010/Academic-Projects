@@ -8,10 +8,7 @@ TreeNode<T>::TreeNode(){ }
 template<typename T>
 TreeNode<T>::TreeNode(T val, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
 {
-    value  = val;
-    parent = par;
-    lChild = l_Ch;
-    rChild = r_Ch;
+    reCreate(val, par, l_Ch, r_Ch);
 }
 
 template<typename T>
@@ -21,11 +18,22 @@ TreeNode<T>::~TreeNode()
 }
 
 template<typename T>
-void TreeNode<T>::clear( void (*valueDestructor)(T &val) )
+void TreeNode<T>::reCreate(T val, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
+{
+    value  = val;
+    parent = par;
+    lChild = l_Ch;
+    rChild = r_Ch;
+    _count = 1;
+}
+
+template<typename T>
+void TreeNode<T>::clear( void (*valueDestructor)(T *val) )
 {
     if(valueDestructor)
-        (*valueDestructor)(value);
+        (*valueDestructor)(&value);
     height = 0;
+    _count = 0;
     parent = nullptr; //maybe bad
     rChild = nullptr;
     lChild = nullptr;
@@ -34,55 +42,111 @@ void TreeNode<T>::clear( void (*valueDestructor)(T &val) )
 template<typename T>
 T TreeNode<T>::getValue()
 {
-
+    return value;
 }
 
 template<typename T>
 void TreeNode<T>::setValue(T newVal)
 {
-
+    value = newVal;
 }
 
 template<typename T>
 int  TreeNode<T>::getHeight()
 {
-
+    return height;
 }
 
 template<typename T>
-void TreeNode<T>::setHeight()
+void TreeNode<T>::setHeight(int newVal)
 {
-
+    if(newVal >= 0) height = newVal;
 }
 
+template<typename T>
+int  TreeNode<T>::getCount()
+{
+    return _count;
+}
+
+template<typename T>
+void TreeNode<T>::setCount(int newVal)
+{
+    if(newVal >= 0) _count = newVal;
+}
+
+//getters
 template<typename T>
 TreeNode<T>* TreeNode<T>::getParent()
 {
-
+    return parent;
 }
 
 template<typename T>
 TreeNode<T>* TreeNode<T>::getLeftChild()
 {
-
+    return lChild;
 }
 
 template<typename T>
-TreeNode<T>* TreeNode<T>::getRighChild()
+TreeNode<T>* TreeNode<T>::getRightChild()
 {
+    return rChild;
+}
 
+//setters
+template<typename T>
+void TreeNode<T>::setParent(TreeNode<T>* val)
+{
+    parent = val;
+}
+
+template<typename T>
+void TreeNode<T>::setLeftChild(TreeNode<T>* val)
+{
+    lChild = val;
+}
+
+template<typename T>
+void TreeNode<T>::setRightChild(TreeNode<T>* val)
+{
+    rChild = val;
+}
+
+//condition functions
+template<typename T>
+bool TreeNode<T>::isLeaf()
+{
+    if(lChild == nullptr && rChild == nullptr)
+        return true;
+    return false;
+}
+
+template<typename T>
+bool TreeNode<T>::isRoot()
+{
+    if(parent == nullptr)
+        return true;
+    return false;
 }
 
 template<typename T>
 void TreeNode<T>::fixHeight()
 {
+    if(this->isLeaf()) height = 0;
+    else
+    {
+        int lh = (lChild ? lChild->getHeight() : 0);
+        int rh = (rChild ? rChild->getHeight() : 0);
 
+        height = (lh > rh ? lh : rh) + 1;
+    }
 }
 
 template<typename T>
 int TreeNode<T>::getBallanceFactor()
 {
-
+    return (lChild ? lChild->getHeight() : 0) - (rChild ? rChild->getHeight() : 0);
 }
 
 //supported template definitions
