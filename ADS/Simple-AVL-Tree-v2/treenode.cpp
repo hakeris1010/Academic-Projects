@@ -25,6 +25,7 @@ void TreeNode<T>::reCreate(T val, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
     lChild = l_Ch;
     rChild = r_Ch;
     _count = 1;
+    height = 1;
 }
 
 template<typename T>
@@ -49,6 +50,7 @@ template<typename T>
 void TreeNode<T>::setValue(T newVal)
 {
     value = newVal;
+    if(height<0) height = 0;
 }
 
 template<typename T>
@@ -105,12 +107,14 @@ template<typename T>
 void TreeNode<T>::setLeftChild(TreeNode<T>* val)
 {
     lChild = val;
+    if(val) val->setParent(this);
 }
 
 template<typename T>
 void TreeNode<T>::setRightChild(TreeNode<T>* val)
 {
     rChild = val;
+    if(val) val->setParent(this);
 }
 
 //condition functions
