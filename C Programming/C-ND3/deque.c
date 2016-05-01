@@ -38,7 +38,9 @@ struct InternalStructs
 
     int ballanceFactor; //= DEQ_DEFAULT_BALLANCE_FACT;
     int paddingFact; //= DEQ_DEFAULT_ALLOC_PADDING;
-    int state;
+    char state;
+    char copy; //if elems need to be copied before pushing
+    int allocatorArgc;
 
     //info about 1 elem
     int elemSize;
@@ -72,7 +74,7 @@ char initVoidArray(struct VoidArray* arr, int padding)
     arr->array = NULL;
     arr->curSize = 0;
     arr->maxSize = 0;
-    arr->padding = padding;
+    arr->padding = (padding > 0 ? padding : 1);
     arr->areCopies = 0;
 
     return 0;
@@ -94,7 +96,7 @@ char initVoidArrayPtr(struct VoidArray** arr, int elemCount, int padding, char m
     (*arr)->array = NULL;
     (*arr)->curSize = 0;
     (*arr)->maxSize = 0;
-    (*arr)->padding = padding;
+    (*arr)->padding = (padding > 0 ? padding : 1);
     (*arr)->areCopies = 0;
 
     return 0;
@@ -106,7 +108,7 @@ const struct VoidArray createVoidArray(int padding)
     arr.array=NULL;
     arr.curSize=0;
     arr.maxSize=0;
-    arr.padding=padding;
+    arr.padding = (padding > 0 ? padding : 1);
     arr.areCopies = 0;
     return arr;
 }
@@ -128,7 +130,7 @@ char fixBadVoidArrayParams(struct VoidArray* arr)
     }
     if(arr->padding<1)
     {
-        arr->padding=0;
+        arr->padding=1;
         badVal=3;
     }
 
@@ -148,8 +150,11 @@ void nullifyEmptyArray(struct VoidArray* arr)
 int reallocateVoidArray(struct VoidArray* arr, int newSize, int padding) //returns new MaxSize
 {
     if(arr==NULL) return -1;
+    if(padding <= 0) padding = 1;
 
-    newSize += (newSize/padding + 1)*padding - newSize; //add a padding (if newSize=14, and padding=8, add 2, newSize=16).
+    //newSize += (newSize/padding + 1)*padding - newSize; //add a padding (if newSize=14, and padding=8, add 2, newSize=16).
+
+    newSize += padding - newSize%padding; //add a padding (if newSize=14, and padding=8, add 2, newSize=16).
 
     arr->array = (struct VoidPtrElement*) realloc (arr->array, sizeof(struct VoidPtrElement) * newSize); //allocate new block o' memory
     arr->maxSize = newSize; //set new maxSize - super important!
@@ -227,7 +232,7 @@ char addElemToVoidArray(struct VoidArray* arr, const void* elem, char mode) //mo
 }
 
 //deleting
-char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos, int (*deallocatorCallback)(void* elem))
+char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos, int (*deallocatorCallback)(void* elem), char dealloc)
 {
     printf("[removeElemFromVoidArray]: pos= %d\n", pos);
     if(!arr) return 1;
@@ -236,7 +241,7 @@ char removeElemFromVoidArray(struct VoidArray* arr, unsigned int pos, int (*deal
 
     if(arr->areCopies)
     {
-        if(deallocatorCallback)
+        if(deallocatorCallback && dealloc)
             deallocatorCallback( ((arr->array)[pos]).elem ); //free that.
     }
 
@@ -369,7 +374,7 @@ int ballanceArrays(struct InternalStructs* inst, char mode) //mode: 0 - standart
                 else
                     (inst->frontArr->array)[(-1*i) - 1] = (inst->frontArr->array)[-1*i];
             }
-            removeElemFromVoidArray(inst->frontArr, -1*i -1, inst->deallocatorCallback);
+            removeElemFromVoidArray(inst->frontArr, -1*i -1, inst->deallocatorCallback, 1);
         }
 
         inst->backArr->curSize  += pushCount;
@@ -406,7 +411,7 @@ int ballanceArrays(struct InternalStructs* inst, char mode) //mode: 0 - standart
                 else
                     (inst->backArr->array)[(-1*i) - 1] = (inst->backArr->array)[-1*i];
             }
-            removeElemFromVoidArray(inst->backArr, -1*i -1, inst->deallocatorCallback);
+            removeElemFromVoidArray(inst->backArr, -1*i -1, inst->deallocatorCallback, 1);
         }
 
         //inst->backArr->curSize  -= pushCount;
@@ -442,7 +447,7 @@ int create(struct Deque* d)
     return 0;
 }
 
-int create_from_array(struct Deque* d, int n, const void** arr) //TODO
+int create_from_array(struct Deque* d, int n, const void** arr) //TO CHECK
 {
     if(d==NULL) return 1;
     if(create(d) != 0) return 2; //sukuriam deka
@@ -457,13 +462,14 @@ int create_from_array(struct Deque* d, int n, const void** arr) //TODO
 }
 
 //callb4ck's
-int set_callbacks(struct Deque* d, int (*_deallocatorCallback)(void* elem), int (*_evaluatorCallback)(const void* elem), void* (*_allocatorCallback)(void* address, ... ) ) //TODO
+int set_callbacks(struct Deque* d, int (*_deallocatorCallback)(void* elem), int (*_evaluatorCallback)(const void* elem), void* (*_allocatorCallback)(void* address, ... ) ) //TO CHECK
 {
     if(d==NULL) return 1;
 
     ((struct InternalStructs*)(d->internals))->allocatorCallback   = _allocatorCallback;
     ((struct InternalStructs*)(d->internals))->deallocatorCallback = _deallocatorCallback;
     ((struct InternalStructs*)(d->internals))->evaluatorCallback   = _evaluatorCallback;
+    //((struct InternalStructs*)(d->internals))->allocatorArgc = allocArgc;
 }
 
 //clear's
@@ -485,45 +491,100 @@ void clear(struct Deque* d)
 
 //ops.
 
-void push_back(struct Deque* d, const void* elem)
+void pushElem(struct Deque* d, const void* elem, char pFront)
 {
     if( !d ) return;
-    addElemToVoidArray( ((struct InternalStructs*)(d->internals))->backArr, elem, 0 ); //idedam i back'a
-    ballanceArrays((struct InternalStructs*)(d->internals), 0); //subalansuojam jei reikia
+    struct InternalStructs* st = ((struct InternalStructs*)(d->internals));
+    void* el;
+
+    if( st->copy ? st->allocatorCallback : 0 )
+    {
+        el = (st->allocatorCallback)(elem);
+    }
+    else
+        el = elem;
+
+    if( pFront )
+        addElemToVoidArray( st->frontArr, el, 0 ); //idedam i front'a
+    else
+        addElemToVoidArray( st->backArr, el, 0 ); //idedam i back'a
+
+    ballanceArrays( st, 0); //subalansuojam jei reikia
+}
+
+void* popElem(struct Deque* d, char pFront, char nDelete)
+{
+    if( !d ) return NULL;
+    struct InternalStructs* st = ((struct InternalStructs*)(d->internals));
+    struct VoidPtrElement el = createVoidPtrElement(NULL, 0);
+
+    if(pFront)
+    {
+        if(st->frontArr ? st->frontArr->curSize > 0 : 0)
+        {
+            el = *((st->frontArr->array) + st->frontArr->curSize - 1);
+            if(nDelete)
+                removeElemFromVoidArray(st->frontArr, st->frontArr->curSize - 1, st->deallocatorCallback, 0);
+        }
+    }
+    else
+    {
+        if(st->backArr ? st->backArr->curSize > 0 : 0)
+        {
+            el = *((st->backArr->array) + st->backArr->curSize - 1);
+            if(nDelete)
+                removeElemFromVoidArray(st->backArr, st->backArr->curSize - 1, st->deallocatorCallback, 0);
+        }
+    }
+
+    if(el.isAlive)
+        return el.elem;
+    return NULL;
+}
+
+//ops visible.
+
+void push_back(struct Deque* d, const void* elem)
+{
+    pushElem(d, elem, 0);
 }
 
 void push_front(struct Deque* d, const void* elem)
 {
-    if( !d ) return;
-    addElemToVoidArray( ((struct InternalStructs*)(d->internals))->frontArr, elem, 0 ); //idedam i front'a
-    ballanceArrays((struct InternalStructs*)(d->internals), 0); //subalansuojam jei reikia
+    pushElem(d, elem, 1);
 }
 
 void* pop_back(struct Deque* d)
 {
-    if( !d ) return NULL;
+    return popElem(d, 0, 1);
 }
 
 void* pop_front(struct Deque* d)
 {
-    if( !d ) return NULL;
+    return popElem(d, 1, 1);
 }
 
 void* back(struct Deque* d)
 {
-    if( !d ) return NULL;
+    return popElem(d, 0, 0);
 }
 
 void* front(struct Deque* d)
 {
-    if( !d ) return NULL;
+    return popElem(d, 1, 0);
 }
 
 //wow op's
 
 void push_back_allocator (struct Deque* d, ... )
 {
-    if( !d ) return;
+    va_list vl;
+    va_start(vl, d);
+
+    void* adr = va_arg(vl, void*);
+    //TODO BODO MAKORODO!!!
+
+    va_end(vl);
 }
 
 void push_front_allocator(struct Deque* d, ... )

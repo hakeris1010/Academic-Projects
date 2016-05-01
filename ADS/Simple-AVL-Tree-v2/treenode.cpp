@@ -25,7 +25,7 @@ void TreeNode<T>::reCreate(T val, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
     lChild = l_Ch;
     rChild = r_Ch;
     _count = 1;
-    height = 1;
+    height = 1; //TESTIT: Might be 0
 }
 
 template<typename T>
@@ -33,7 +33,7 @@ void TreeNode<T>::clear( void (*valueDestructor)(T *val) )
 {
     if(valueDestructor)
         (*valueDestructor)(&value);
-    height = 0;
+    height = -1;
     _count = 0;
     parent = nullptr; //maybe bad
     rChild = nullptr;
@@ -50,7 +50,7 @@ template<typename T>
 void TreeNode<T>::setValue(T newVal)
 {
     value = newVal;
-    if(height<0) height = 0;
+    if(height<1) height = 1; //TESTIT: Might be 0
 }
 
 template<typename T>
@@ -137,7 +137,7 @@ bool TreeNode<T>::isRoot()
 template<typename T>
 void TreeNode<T>::fixHeight()
 {
-    if(this->isLeaf()) height = 0;
+    if(this->isLeaf()) height = 1; // TESTIT: might be 0
     else
     {
         int lh = (lChild ? lChild->getHeight() : 0);
@@ -150,7 +150,7 @@ void TreeNode<T>::fixHeight()
 template<typename T>
 int TreeNode<T>::getBallanceFactor()
 {
-    return (lChild ? lChild->getHeight() : 0) - (rChild ? rChild->getHeight() : 0);
+    return (lChild ? lChild->getHeight() : -1) - (rChild ? rChild->getHeight() : -1);
 }
 
 //supported template definitions

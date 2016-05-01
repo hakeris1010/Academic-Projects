@@ -38,6 +38,7 @@
 		<Unit filename="main.cpp" />
 		<Unit filename="treenode.cpp" />
 		<Unit filename="treenode.h" />
+		<Unit filename="treetoolmodes.h" />
 		<Unit filename="treetools.cpp" />
 		<Unit filename="treetools.h" />
 		<Extensions>

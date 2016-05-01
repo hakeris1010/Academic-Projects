@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "treenode.h"
+#include "treetoolmodes.h"
 
 #define H_AVLTREE_VERSION "v0.3"
 
@@ -39,7 +40,7 @@ public:
     TreeNode<T>* rotateLeft(TreeNode<T>* tr);
     TreeNode<T>* rotateRight(TreeNode<T>* tr);
 
-    void showTree(char mode = 0);
+    void showTree(DataShowMode dm = DataShowMode::Value, PointerShowMode pm = PointerShowMode::NoPointers, BranchShowMode bm = BranchShowMode::AllBranches);
 };
 
 #endif // AVLTREE_H_INCLUDED

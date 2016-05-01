@@ -133,6 +133,9 @@ void AVLTree<T>::addElement(T val, bool ballance, bool _copy)
         {
             mout<<"[AVLTree::addElement()] Found equal value at pass: "<<passed<<"\nIncrementing counter.\n";
             cur->setCount(cur->getCount() + 1); //if =, increment counter.
+
+            if(cur->getHeight() > 0)
+                cur->setHeight( cur->getHeight() - 1 ); //decrement height, because it was ++'d.
             break;
         }
         passed++;
@@ -144,18 +147,18 @@ void AVLTree<T>::addElement(T val, bool ballance, bool _copy)
         }
     }
 
-    if((cur ? cur->getValue() != val : 0) && ballance) //if was added new node
+    if(cur && ballance) //if was added new node
     {
-        mout<<"\n=*=*=*=*=*=*= Whole tree before ballancing: =*=*=*=*=*=*=\n";
-        showTree(2);
-        mout<<"                = = = = = = = = = = = = = = = \n";
+        //mout<<"\n=*=*=*=*=*=*= Whole tree before ballancing: =*=*=*=*=*=*=\n";
+        //showTree(DataShowMode::None, PointerShowMode::AllPointers);
+        //mout<<"                = = = = = = = = = = = = = = = \n";
 
         mout<<"[AVLTree::addElement()] Ballancing!\n";
         elemCount++;
         ballanceTree(cur); //start ballancing from current node.
 
-        mout<<"\n============= Whole tree after ballancing: =============\n";
-        showTree(2);
+        //mout<<"\n============= Whole tree after ballancing: =============\n";
+        //showTree(DataShowMode::None, PointerShowMode::AllPointers);
     }
     mout<<"[AVLTree::addElement()] Done! Return...\n---------------------\n";
 }
@@ -272,8 +275,6 @@ void AVLTree<T>::ballanceTree(TreeNode<T>* tr)
 {
     if(!tr) return;
 
-    //FIXME: A bug - tree is not always correctly ballanced. Possible cause - sometimes leaf height is equal to 1.
-
     TreeNode<T>* par = tr->getParent();
     int ctr=0;
     while( par )
@@ -292,9 +293,10 @@ void AVLTree<T>::ballanceTree(TreeNode<T>* tr)
                 mout<<" [AVLTree::ballanceTree()]: tr isLeftChild: ballanceFact > 1 (Left bigger!)\n";
                 if(tr->getBallanceFactor() < -1) //right bigger on child (Left-Right case)
                 {
-                    mout<<" [AVLTree::ballanceTree()] child Right bigger!\n";
+                    mout<<"\n [AVLTree::ballanceTree()] Left - Right Case . \n";
                     rotateLeft(tr);
                 }
+                mout<<"\n [AVLTree::ballanceTree()] Left - Left Case . \n";
                 rotateRight(par); //(Left-Left case)
                 break; //Do we really want to exit now???
             }
@@ -306,13 +308,49 @@ void AVLTree<T>::ballanceTree(TreeNode<T>* tr)
                 mout<<" [AVLTree::ballanceTree()]: tr isRightChild: ballanceFact < -1 (Right bigger!)\n";
                 if(tr->getBallanceFactor() > 1) //left bigger on child (Right-Left case)
                 {
-                    mout<<" [AVLTree::ballanceTree()] child Left bigger!\n";
+                    mout<<"\n [AVLTree::ballanceTree()]  Right - Left Case . \n";
                     rotateRight(tr);
                 }
+                mout<<"\n [AVLTree::ballanceTree()] Right - Right Case . \n";
                 rotateLeft(par); //Right-Right case
                 break; //Do we really want to exit now???
             }
         }
+
+        /*if(par->getBallanceFactor() < -1)
+        {
+            //IF tree's right subtree is left heavy
+            if(par->getRightChild() == tr && tr->getBallanceFactor() > 1)
+            {
+                //Perform Double Left rotation
+                rotateRight(tr);
+                rotateLeft(par);
+                break;
+            }
+            else
+            {
+                //Perform Single Left rotation
+                rotateLeft(par);
+                break;
+            }
+        }
+        else if(par->getBallanceFactor() > 1)
+        {
+            //IF tree's left subtree is right heavy
+            if(par->getLeftChild() == tr && tr->getBallanceFactor() < -1)
+            {
+                //Perform Double Right rotation
+                rotateLeft(tr);
+                rotateRight(par);
+                break;
+            }
+            else
+            {
+                //Perform Single Right rotation
+                rotateRight(par);
+                break;
+            }
+        }*/
 
         tr = par;
         par = tr->getParent();
@@ -419,9 +457,12 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
 }
 
 template<typename T>
-void AVLTree<T>::showTree(char mode)
+void AVLTree<T>::showTree( DataShowMode dm, PointerShowMode pm, BranchShowMode bm )
 {
-    TreeTools<T>::showTree(*this, this->getRoot(), -1, ((mode >= 0 && mode < 5) ? mode : 0 ));
+    TreeTools<T>::showTree_v2(*this, this->getRoot(), -1, dm, pm, bm);
+
+    //old
+    //TreeTools<T>::showTree(*this, this->getRoot(), -1, ((mode >= 0 && mode < 5) ? mode : 0 ));
 }
 
 //supported template definitions

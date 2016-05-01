@@ -5,31 +5,8 @@
 #include <string>
 #include <sstream>
 #include "avltree.h"
+#include "treetoolmodes.h"
 
-
-enum DataShowMode
-{
-    None = 0,
-    Value,
-    ValueNCounter,
-    ValueNHeight,
-    AllData
-};
-
-enum PointerShowMode
-{
-    NullOnly = 0,
-    AllPointers
-};
-
-enum BranchShowMode
-{
-    AllBranches = 0,
-    Left,
-    Right,
-    LeftOnStart,
-    RightOnStart
-};
 
 struct TreeRotPointa
 {
@@ -55,11 +32,19 @@ public:
     static void showRotationPointers_Tree(AVLTree<T> tree, TreeNode<T>* tr, bool rotLeft, bool showUsingShow = true);
     static std::string getRotationPointers_asString(AVLTree<T> tree, TreeNode<T>* tr, bool rotLeft);
 
+    //v1
     static void getVectorTable(TreeNode<T> *roo, TreeNode<T> *par, std::vector<std::string> &table, unsigned int level, int place, bool isLeft, \
                 int goTillLevel = -1, char show_0_Values_1_Null_2_Pointers = 0, char onStartShow_0_All_1_Left_2_Right = 0);
 
     static void showTree(AVLTree<T> tree, TreeNode<T>* raat = nullptr, int tillLevel = -1, char show_0_Val_1_Null_2_Ptrs_3_PtVal_4_PtAll = 0, \
                 char onStartShow_0_All_1_Left_2_Right = 0, int def_linelen = ConsoleLineLenght);
+
+    //v2
+    static void getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::vector<std::string> &table, unsigned int level, int place, bool isLeft, \
+                int goTillLevel, DataShowMode dm, PointerShowMode pm, BranchShowMode bm );
+
+    static void showTree_v2(AVLTree<T> tree, TreeNode<T>* raat = nullptr, int tillLevel = -1, DataShowMode dm = DataShowMode::Value, \
+                PointerShowMode pm = PointerShowMode::NoPointers, BranchShowMode bm = BranchShowMode::AllBranches, int def_linelen = ConsoleLineLenght);
 };
 
 template<typename T>

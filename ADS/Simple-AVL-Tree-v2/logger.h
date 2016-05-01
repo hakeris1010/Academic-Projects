@@ -69,11 +69,11 @@ public:
     bool cPrintf(const char* format, ... );
 
     template<typename T>
-    Logger& operator<< (const T val);
+    Logger& operator<< (const T& val);
 };
 
 template<typename T>
-Logger& Logger::operator<< (const T val) //cout - styple operator
+Logger& Logger::operator<< (const T& val) //cout - styple operator
 {
     if(outpMode==OutMode::No_Output || !canPrint)
         return *this;
