@@ -23,10 +23,10 @@ public:
     AVLTree(TreeNode<T> _root);
     ~AVLTree();
 
-    TreeNode<T>* getRoot();
+    TreeNode<T>* getRoot() const;
     void setRoot(TreeNode<T> st);
     void setFreeOnDestroy(bool val);
-    bool getFreeOnDestroy();
+    bool getFreeOnDestroy() const;
     void setElemDestructor(void (*valDest)(T *val));
 
     void clearRecursive(TreeNode<T>* last = nullptr, void (*valDest)(T *val) = nullptr);
@@ -34,13 +34,13 @@ public:
     void addElement(T val, bool ballance = true, bool _copy = false);
     void deleteElement(T val);
     void deleteNode(TreeNode<T>* node);
-    bool findElement(T val, TreeNode<T>** node = nullptr);
+    bool findElement(T val, TreeNode<T>** node = nullptr) const;
 
     void ballanceTree(TreeNode<T>* tr);
     TreeNode<T>* rotateLeft(TreeNode<T>* tr);
     TreeNode<T>* rotateRight(TreeNode<T>* tr);
 
-    void showTree(DataShowMode dm = DataShowMode::Value, PointerShowMode pm = PointerShowMode::NoPointers, BranchShowMode bm = BranchShowMode::AllBranches);
+    void showTree(DataShowMode dm = DataShowMode::Value, PointerShowMode pm = PointerShowMode::NoPointers, BranchShowMode bm = BranchShowMode::AllBranches) const;
 };
 
 #endif // AVLTREE_H_INCLUDED

@@ -44,13 +44,13 @@ void AVLTree<T>::setFreeOnDestroy(bool val)
 }
 
 template<typename T>
-bool AVLTree<T>::getFreeOnDestroy()
+bool AVLTree<T>::getFreeOnDestroy() const
 {
     return freeOnDestroy;
 }
 
 template<typename T>
-TreeNode<T>* AVLTree<T>::getRoot()
+TreeNode<T>* AVLTree<T>::getRoot() const
 {
     return root;
 }
@@ -195,6 +195,9 @@ void AVLTree<T>::deleteNode(TreeNode<T>* node)
         { //set parent's child to null
             (isNodeLeft ? par->setLeftChild(nullptr) : par->setRightChild(nullptr));
             par->fixHeight();
+            ballanceTree(par->getLeftChild());
+            ballanceTree(par->getRightChild());
+            ballanceTree(par); //maybe useless
         }
         else //is root
             root = nullptr;
@@ -231,16 +234,22 @@ void AVLTree<T>::deleteNode(TreeNode<T>* node)
         replc = node->getRightChild();
     }
     replc->fixHeight();
+    //ballanceTree(replc);
 
     if(par) //set parent's child as replc
     {
         (isNodeLeft ? par->setLeftChild( replc ) : par->setRightChild( replc ));
         par->fixHeight();
+        ballanceTree(par->getLeftChild());
+        ballanceTree(par->getRightChild());
+        ballanceTree(par);
     }
     else //root!
     {
         root = replc;
         root->setParent(nullptr);
+        ballanceTree(root->getLeftChild());
+        ballanceTree(root->getRightChild());
     }
 
     //TODO: Balance a tree at right places.
@@ -250,7 +259,7 @@ void AVLTree<T>::deleteNode(TreeNode<T>* node)
 }
 
 template<typename T>
-bool AVLTree<T>::findElement(T val, TreeNode<T>** node)
+bool AVLTree<T>::findElement(T val, TreeNode<T>** node) const
 {
     TreeNode<T>* tmp = root;
 
@@ -365,7 +374,7 @@ TreeNode<T>* AVLTree<T>::rotateLeft(TreeNode<T>* tr)
     if(TreeTools<T>::areChildsNullWithOutput(tr, 2)) //check right (tmp)
         return tr;
     mout<<"\n  [ AVLTree::rotateLeft() ] \n";
-    TreeTools<T>::showRotationPointers_Tree(*this, tr, true);
+    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tr, true);
 
     mout<<"  [AVLTree::rotLeft()]: set par : ";
     TreeNode<T>* par = tr->getParent();
@@ -403,7 +412,7 @@ TreeNode<T>* AVLTree<T>::rotateLeft(TreeNode<T>* tr)
     }
 
     mout<<"  After: "<<TreeTools<T>::getRotationPointers_asString(*this, tmp, true)<<"\n";
-    TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
+    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
     return tmp;
 }
 
@@ -414,7 +423,7 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
         return tr;
     mout<<"\n  [ AVLTree::rotateRight() ] \n";
     //mout<<"  Before: "<<getRotationPointers_asString(tr, false)<<"\n";
-    TreeTools<T>::showRotationPointers_Tree(*this, tr, false);
+    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tr, false);
 
     mout<<"  [AVLTree::rotRight()]: set par : ";
     TreeNode<T>* par = tr->getParent();
@@ -452,12 +461,12 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
     }
 
     mout<<"  After: "<<TreeTools<T>::getRotationPointers_asString(*this, tmp, true)<<"\n";
-    TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
+    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
     return tmp;
 }
 
 template<typename T>
-void AVLTree<T>::showTree( DataShowMode dm, PointerShowMode pm, BranchShowMode bm )
+void AVLTree<T>::showTree( DataShowMode dm, PointerShowMode pm, BranchShowMode bm ) const
 {
     TreeTools<T>::showTree_v2(*this, this->getRoot(), -1, dm, pm, bm);
 
