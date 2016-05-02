@@ -25,7 +25,7 @@ void TreeNode<T>::reCreate(T val, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
     lChild = l_Ch;
     rChild = r_Ch;
     _count = 1;
-    height = 1; //TESTIT: Might be 0
+    height = 1;
 }
 
 template<typename T>
@@ -50,7 +50,7 @@ template<typename T>
 void TreeNode<T>::setValue(T newVal)
 {
     value = newVal;
-    if(height<1) height = 1; //TESTIT: Might be 0
+    if(height<1) height = 1;
 }
 
 template<typename T>
@@ -137,7 +137,7 @@ bool TreeNode<T>::isRoot()
 template<typename T>
 void TreeNode<T>::fixHeight()
 {
-    if(this->isLeaf()) height = 1; // TESTIT: might be 0
+    if(this->isLeaf()) height = 1;
     else
     {
         int lh = (lChild ? lChild->getHeight() : 0);
