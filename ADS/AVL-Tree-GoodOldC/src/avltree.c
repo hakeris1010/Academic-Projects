@@ -54,6 +54,13 @@ char TreeNode_init(TreeNode* nod, void* dat, int _height, TreeNode* par, TreeNod
     TreeNode_setRightChild(nod, r_Ch);
 }
 
+TreeNode* TreeNode_createPtr(void* dat, int _height, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
+{
+    TreeNode* newNode = (TreeNode*)malloc(sizeof(TreeNode));
+    TreeNode_init(newNode, dat, _height, par, l_Ch, r_Ch);
+    return newNode;
+}
+
 void TreeNode_clear(TreeNode* nod, void (*valDest)(void* val) )
 {
     if(!nod) return;
@@ -172,81 +179,183 @@ void defaultInternals(AVLTreeInternal* inter)
 
 //Actual Tree
 
+AVLTreeInternal* getInternal(AVLTree* tree)
+{
+    if(!tree) return NULL;
+    return ( ((AVLTreeInternal*)(tree->internals)) ? ((AVLTreeInternal*)(tree->internals)) : NULL);
+}
+
 void avl_setFreeOnDestroy(AVLTree* tree, char val)
 {
-    if(!tree) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
+
+    ints->freeOnDestroy = val;
 }
 
 char avl_getFreeOnDestroy(AVLTree* tree)
 {
-    if(!tree) return 0;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return 0;
+
+    return ((AVLTreeInternal*)(tree->internals))->freeOnDestroy;
 }
 
 void avl_setElemDestructorCallback(AVLTree* tree, void (*valDest)(void* val))
 {
-    if(!tree) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
+
+    ints->valueDestructor = valDest;
 }
 
-void avl_setEvaluatorCallback(AVLTree* tree)
+void avl_setEvaluatorCallback(AVLTree* tree, void (*elemEval)(void*, void*))
 {
-    if(!tree) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
+
+    ints->elemEvaluator = elemEval;
 }
 
-void avl_clearTree_setCallback(AVLTree* tree, void (*valDest)(void* val))
+void avl_priv_clearRecursive(TreeNode* curNod, void (*valDest)(void*), char freeOnDest)
 {
-    if(!tree) return;
+    if(!curNod) return;
+
+    avl_priv_clearRecursive(curNod->lChild, valDest, freeOnDest);
+    avl_priv_clearRecursive(curNod->rChild, valDest, freeOnDest);
+
+    TreeNode_clear(curNod, valDest);
+    if(freeOnDest)
+        free(curNod);
 }
 
 void avl_clearTree(AVLTree* tree)
 {
-    if(!tree) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
+
+    avl_priv_clearRecursive(ints->root, ints->valueDestructor, ints->freeOnDestroy);
 }
 
 void avl_addElement(AVLTree* tree, void* val, char _copy)
 {
-    if(!tree) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
+
+    if( !ints->root ) //empty
+    {
+        ints->root = TreeNode_createPtr(ints->root, val, 1, NULL, NULL, NULL);
+        return;
+    }
+    TreeNode* cur = root;
+    int passed=0;
+
+    while( cur ) //not nullptr
+    {
+        TreeNode* test = cur;
+
+        ++(cur->height); //increment height of this node - we're passing it
+        if( ints->elemEvaluator ? ((ints->elemEvaluator)(val, cur->data)) < 0 : val < cur->data )
+        {
+            if(cur->lChild)
+                cur = cur->lChild;
+            else
+            {
+                TreeNode* newNode = TreeNode_createPtr(val, 1, cur, NULL, NULL); //create a new node (left)
+                TreeNode_setLeftChild(cur, newNode); //assign a new node;
+                break;
+            }
+        }
+        else if( ints->elemEvaluator ? ((ints->elemEvaluator)(val, cur->data)) > 0 : val > cur->data )
+        {
+            if(cur->rChild)
+                cur = cur->rChild;
+            else
+            {
+                TreeNode* newNode = TreeNode_createPtr(val, 1, cur, NULL, NULL); //create a new node (right)
+                TreeNode_setRightChild(cur, newNode); //assign a new node;
+                break;
+            }
+        }
+        else //val == cur
+        {
+            cur->setCount(cur->getCount() + 1); //if =, increment counter.
+
+            if(cur->getHeight() > 0)
+                cur->setHeight( cur->getHeight() - 1 ); //decrement height, because it was ++'d.
+            break;
+        }
+        passed++;
+
+        if(cur == test)
+        {
+            break;
+        }
+    }
+
+    if(cur && ballance) //if was added new node
+    {
+        //mout<<"\n=*=*=*=*=*=*= Whole tree before ballancing: =*=*=*=*=*=*=\n";
+        //showTree(DataShowMode::None, PointerShowMode::AllPointers);
+        //mout<<"                = = = = = = = = = = = = = = = \n";
+
+        elemCount++;
+        ballanceTree(cur); //start ballancing from current node.
+
+        //mout<<"\n============= Whole tree after ballancing: =============\n";
+        //showTree(DataShowMode::None, PointerShowMode::AllPointers);
+    }*/
 }
 
-void avl_deleteElement_setCallback( AVLTree* tree, void* val, char (*evalCallbk)(void* v1, void* v2) )
+void avl_deleteElement_setCallback( AVLTree* tree, void* val, void (*valDest)(void* val) )
 {
-    if(!tree || !val) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
+
 }
 
 void avl_deleteElement( AVLTree* tree, void* val )
 {
-    if(!tree || !val) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
 }
 
 char avl_findElement_setCallback( AVLTree* tree, void* val, char (*evalCallbk)(void* v1, void* v2) )
 {
-    if(!tree) return 0;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return 0;
 }
 
 char avl_findElement( const AVLTree* tree, void* val )
 {
-    if(!tree) return 0;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return 0;
 }
 
 //Balance!
-void avl_ballanceTree(AVLTreeInternal* tree, TreeNode* tr)
+void avl_priv_ballanceTree(AVLTreeInternal* tree, TreeNode* tr)
 {
-    if(!tree || !tr) return NULL;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return NULL;
 }
 
-TreeNode* avl_rotateLeft(AVLTreeInternal* tree, TreeNode* tr)
+TreeNode* avl_priv_rotateLeft(AVLTreeInternal* tree, TreeNode* tr)
 {
-    if(!tree || !tr) return NULL;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return NULL;
 }
 
-TreeNode* avl_rotateRight(AVLTreeInternal* tree, TreeNode* tr)
+TreeNode* avl_priv_rotateRight(AVLTreeInternal* tree, TreeNode* tr)
 {
-    if(!tree || !tr) return NULL;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return NULL;
 }
 
 //show!
 void avl_showTree( const AVLTree* tree, char dataShowmode, char pointerShowmode, char branchShowmode )
 {
-    if(!tree) return;
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints) return;
 }
 
 //endz0r.

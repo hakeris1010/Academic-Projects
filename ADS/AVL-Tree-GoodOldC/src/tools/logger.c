@@ -4,14 +4,14 @@
 #include "logger.h"
 
 //state variables
-char loggerMode    = HLOG_TO_SCREEN;
-char fileCloseMode = 0;
-char turnedOn      = 1;
+static char loggerMode    = HLOG_TO_SCREEN;
+static char fileCloseMode = 0;
+static char turnedOn      = 1;
 
-const char defaultLoggerFileName[] = "log.txt";
-char* loggerFileName = NULL;
+static const char defaultLoggerFileName[] = "log.txt";
+static char* loggerFileName = NULL;
 
-FILE* cFile = NULL;
+static FILE* cFile = NULL;
 
 //functions
 void hlog_setLoggerMode(char mode)

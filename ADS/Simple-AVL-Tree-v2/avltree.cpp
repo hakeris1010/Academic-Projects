@@ -326,41 +326,6 @@ void AVLTree<T>::ballanceTree(TreeNode<T>* tr)
             }
         }
 
-        /*if(par->getBallanceFactor() < -1)
-        {
-            //IF tree's right subtree is left heavy
-            if(par->getRightChild() == tr && tr->getBallanceFactor() > 1)
-            {
-                //Perform Double Left rotation
-                rotateRight(tr);
-                rotateLeft(par);
-                break;
-            }
-            else
-            {
-                //Perform Single Left rotation
-                rotateLeft(par);
-                break;
-            }
-        }
-        else if(par->getBallanceFactor() > 1)
-        {
-            //IF tree's left subtree is right heavy
-            if(par->getLeftChild() == tr && tr->getBallanceFactor() < -1)
-            {
-                //Perform Double Right rotation
-                rotateLeft(tr);
-                rotateRight(par);
-                break;
-            }
-            else
-            {
-                //Perform Single Right rotation
-                rotateRight(par);
-                break;
-            }
-        }*/
-
         tr = par;
         par = tr->getParent();
         ctr++;

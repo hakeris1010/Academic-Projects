@@ -13,14 +13,14 @@ typedef struct AVLTree
 void avl_setFreeOnDestroy(AVLTree* tree, char val);
 char avl_getFreeOnDestroy(AVLTree* tree);
 void avl_setElemDestructorCallback(AVLTree* tree, void (*valDest)(void* val));
-void avl_setEvaluatorCallback(AVLTree* tree);
+void avl_setEvaluatorCallback(AVLTree* tree, void (*elemEvaluator)(void*, void*));
 
 void avl_clearTree_setCallback(AVLTree* tree, void (*valDest)(void* val));
 void avl_clearTree(AVLTree* tree);
 
 void avl_addElement(AVLTree* tree, void* val, char _copy);
 
-void avl_deleteElement_setCallback( AVLTree* tree, void* val, char (*evalCallbk)(void* v1, void* v2) );
+void avl_deleteElement_setCallback( AVLTree* tree, void* val, void (*valDest)(void* val) );
 void avl_deleteElement( AVLTree* tree, void* val );
 
 char avl_findElement_setCallback( AVLTree* tree, void* val, char (*evalCallbk)(void* v1, void* v2) );
