@@ -1,17 +1,7 @@
 #include <stdlib.h>
 #include "avltree.h"
 #include "treetools.h"
-
-typedef struct TreeNode
-{
-    void* data;
-    int counter;
-    int height;
-
-    struct TreeNode* parent;
-    struct TreeNode* lChild;
-    struct TreeNode* rChild;
-} TreeNode;
+#include "treenode.h"
 
 typedef struct AVLTreeInternal
 {
@@ -20,137 +10,9 @@ typedef struct AVLTreeInternal
     char freeOnDestroy;
 
     void (*valueDestructor)(void* val);
-    void (*elemEvaluator)(void* val1, void* val2);
+    char (*elemEvaluator)(void* val1, void* val2);
 
 } AVLTreeInternal;
-
-// N O D E F U N C S
-//Create&Clear
-TreeNode TreeNode_create(void* dat, int _height, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
-{
-    TreeNode newNode;
-
-    newNode.data = dat;
-    newNode.counter = (dat ? 0 : 1);
-    newNode.height = _height;
-
-    TreeNode_setParent(&newNode, par, 0);
-    TreeNode_setLeftChild(&newNode, l_Ch);
-    TreeNode_setRightChild(&newNode, r_Ch);
-
-    return newNode;
-}
-
-char TreeNode_init(TreeNode* nod, void* dat, int _height, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
-{
-    if(!nod) return;
-
-    nod->data = dat;
-    nod->counter = (dat ? 0 : 1);
-    nod->height = _height;
-
-    TreeNode_setParent(nod, par, 0);
-    TreeNode_setLeftChild(nod, l_Ch);
-    TreeNode_setRightChild(nod, r_Ch);
-}
-
-TreeNode* TreeNode_createPtr(void* dat, int _height, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
-{
-    TreeNode* newNode = (TreeNode*)malloc(sizeof(TreeNode));
-    TreeNode_init(newNode, dat, _height, par, l_Ch, r_Ch);
-    return newNode;
-}
-
-void TreeNode_clear(TreeNode* nod, void (*valDest)(void* val) )
-{
-    if(!nod) return;
-
-    if(valDest)
-        valDest( nod->data );
-
-    nod->data = NULL;
-    nod->counter = 0;
-    nod->height = 0;
-
-    nod->parent = NULL;
-    nod->lChild = NULL;
-    nod->rChild = NULL;
-}
-
-void TreeNode_setValue(TreeNode* nod, void* newVal)
-{
-    if(!nod) return;
-
-    nod->data = newVal;
-    if(nod->height < 1) nod->height = 1;
-}
-
-//Childs&Pars
-void TreeNode_setParent(TreeNode* nod, TreeNode* parval, char parBranch) //parBranch: 0 if don't set, 'l' if left, 'r' if right
-{
-    if(!nod) return;
-
-    nod->parent = parval;
-    if(parval && parBranch)
-    {
-        if(parBranch=='l')
-            TreeNode_setLeftChild(parval, nod);
-        else if(parBranch=='r')
-            TreeNode_setRightChild(parval, nod);
-    }
-}
-
-void TreeNode_setLeftChild(TreeNode* nod, TreeNode* val)
-{
-    if(!nod) return;
-
-    nod->lChild = val;
-    if(val) TreeNode_setParent(val, nod, 0);
-}
-
-void TreeNode_setRightChild(TreeNode* nod, TreeNode* val)
-{
-    if(!nod) return;
-
-    nod->rChild = val;
-    if(val) TreeNode_setParent(val, nod, 0);
-}
-
-//condition functions
-char TreeNode_isLeaf(TreeNode nod)
-{
-    if(!nod.lChild && !nod.rChild)
-        return 1;
-    return 0;
-}
-
-char TreeNode_isRoot(TreeNode nod)
-{
-    if(!nod.parent)
-        return 1;
-    return 0;
-}
-
-void TreeNode_fixHeight(TreeNode* nod)
-{
-    if(!nod) return;
-
-    if( TreeNode_isLeaf(*nod) ) nod->height = 1;
-    else
-    {
-        int lh = (nod->lChild ? nod->lChild->height : 0);
-        int rh = (nod->rChild ? nod->rChild->height : 0);
-
-        nod->height = (lh > rh ? lh : rh) + 1;
-    }
-}
-
-int TreeNode_getBallanceFactor(TreeNode* nod)
-{
-    if(!nod) return 0;
-    return (nod->lChild ? nod->lChild->height : -1) - (nod->rChild ? nod->rChild->height : -1);
-}
-
 
 // T R E E F U N C S
 // Internal AVL Struct0r
@@ -237,17 +99,17 @@ void avl_clearTree(AVLTree* tree)
     avl_priv_clearRecursive(ints->root, ints->valueDestructor, ints->freeOnDestroy);
 }
 
-void avl_addElement(AVLTree* tree, void* val, char _copy)
+void avl_addElement(AVLTree* tree, const void* val, char _copy, char ballance)
 {
     AVLTreeInternal* ints = getInternal(tree);
     if(!ints) return;
 
     if( !ints->root ) //empty
     {
-        ints->root = TreeNode_createPtr(ints->root, val, 1, NULL, NULL, NULL);
+        ints->root = TreeNode_createPtr(val, 1, NULL, NULL, NULL);
         return;
     }
-    TreeNode* cur = root;
+    TreeNode* cur = ints->root;
     int passed=0;
 
     while( cur ) //not nullptr
@@ -279,10 +141,10 @@ void avl_addElement(AVLTree* tree, void* val, char _copy)
         }
         else //val == cur
         {
-            cur->setCount(cur->getCount() + 1); //if =, increment counter.
+            (cur->counter)++; //if =, increment counter.
 
-            if(cur->getHeight() > 0)
-                cur->setHeight( cur->getHeight() - 1 ); //decrement height, because it was ++'d.
+            if(cur->height > 0)
+                (cur->height)--; //decrement height, because it was ++'d.
             break;
         }
         passed++;
@@ -299,37 +161,58 @@ void avl_addElement(AVLTree* tree, void* val, char _copy)
         //showTree(DataShowMode::None, PointerShowMode::AllPointers);
         //mout<<"                = = = = = = = = = = = = = = = \n";
 
-        elemCount++;
-        ballanceTree(cur); //start ballancing from current node.
+        (ints->elemCount)++;
+        avl_priv_ballanceTree(ints, cur); //start ballancing from current node.
 
         //mout<<"\n============= Whole tree after ballancing: =============\n";
         //showTree(DataShowMode::None, PointerShowMode::AllPointers);
-    }*/
+    }
 }
 
-void avl_deleteElement_setCallback( AVLTree* tree, void* val, void (*valDest)(void* val) )
+void avl_deleteElement_setCallback( AVLTree* tree, const void* val, void (*valDest)(void* val) )
 {
     AVLTreeInternal* ints = getInternal(tree);
     if(!ints) return;
 
+    //ToDo
 }
 
-void avl_deleteElement( AVLTree* tree, void* val )
+void avl_deleteElement( AVLTree* tree, const void* val )
 {
     AVLTreeInternal* ints = getInternal(tree);
     if(!ints) return;
+
+    //ToDo
 }
 
-char avl_findElement_setCallback( AVLTree* tree, void* val, char (*evalCallbk)(void* v1, void* v2) )
+void avl_priv_deleteNode( AVLTreeInternal* tree, TreeNode* delNode )
 {
-    AVLTreeInternal* ints = getInternal(tree);
-    if(!ints) return 0;
+    if(!tree || !delNode) return;
+
+    //ToDo
 }
 
-char avl_findElement( const AVLTree* tree, void* val )
+char avl_findElement_setCallback( AVLTree* tree, const void* val, char (*evalCallbk)(void* v1, void* v2) )
 {
     AVLTreeInternal* ints = getInternal(tree);
-    if(!ints) return 0;
+    if(!ints || !val) return 0;
+
+    //ToDo
+}
+
+char avl_findElement( const AVLTree* tree, const void* val )
+{
+    AVLTreeInternal* ints = getInternal(tree);
+    if(!ints || !val) return 0;
+
+    //ToDo
+}
+
+char avl_priv_findNode( const AVLTreeInternal* const tree, const void* val )
+{
+    if(!tree || !val) return;
+
+    //ToDoEz
 }
 
 //Balance!
@@ -339,6 +222,26 @@ void avl_priv_ballanceTree(AVLTreeInternal* tree, TreeNode* tr)
     if(!ints) return NULL;
 }
 
+//find out stuff.
+char avl_priv_areChildsNullWithOutput(const TreeNode* tr, char mode) // 0 - both, 1 - left, 2 - right
+{
+    if(!tr) return 2;
+
+    if(!tr ? 1 : (!(tr->lChild) || !(tr->rChild)))
+    {
+        //nan = (!tr ? "tr" : (!(tr->getLeftChild()) ? "tr->leftChild" : (!(tr->getRightChild()) ? "tr->rightChild" : "Nothing!" )));
+        char nan = (!tr ? 0 : (!(tr->lChild) ? 1 : (!(tr->rChild) ? 2 : 3 ))); //0 - tr, 1 - tr->lChild, 2 - tr->rChild, 3 - nothing
+
+        if((mode==1 && nan==1) || (mode==2 && nan==2) || mode==0)
+        {
+            hlogf("  [AVLTree::areChildsNull()] Oops!!! Looks like %d is NULL !!! \n", nan);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+//rotazione's
 TreeNode* avl_priv_rotateLeft(AVLTreeInternal* tree, TreeNode* tr)
 {
     AVLTreeInternal* ints = getInternal(tree);

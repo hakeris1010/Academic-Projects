@@ -39,10 +39,22 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/avltree.h" />
+		<Unit filename="src/tools/cstringwrap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/tools/cstringwrap.h" />
+		<Unit filename="src/tools/cvector.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/tools/cvector.h" />
 		<Unit filename="src/tools/logger.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/tools/logger.h" />
+		<Unit filename="src/treenode.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/treenode.h" />
 		<Unit filename="src/treetools.c">
 			<Option compilerVar="CC" />
 		</Unit>
