@@ -43,16 +43,8 @@ public:
     static void getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::vector<std::string> &table, unsigned int level, int place, bool isLeft, \
                 int goTillLevel, DataShowMode dm, PointerShowMode pm, BranchShowMode bm );
 
-    static void showTree_v2(AVLTree<T> tree, TreeNode<T>* raat = nullptr, int tillLevel = -1, DataShowMode dm = DataShowMode::Value, \
+    static void showTree_v2(const AVLTree<T> tree, TreeNode<T>* raat = nullptr, int tillLevel = -1, DataShowMode dm = DataShowMode::Value, \
                 PointerShowMode pm = PointerShowMode::NoPointers, BranchShowMode bm = BranchShowMode::AllBranches, int def_linelen = ConsoleLineLenght);
 };
-
-template<typename T>
-std::string toString(T val) //convert a value to string
-{
-    std::stringstream ss;
-    ss<<val;
-    return ss.str();
-}
 
 #endif // TREETOOLS_H_INCLUDED

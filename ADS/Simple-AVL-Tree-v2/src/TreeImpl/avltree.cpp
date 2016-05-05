@@ -2,9 +2,11 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include "logger.h"
+#include <typeinfo>
+#include "Tools/logger.h"
 #include "avltree.h"
 #include "treetools.h"
+#include "debdefines.h"
 
 template<typename T>
 AVLTree<T>::AVLTree(){ }
@@ -38,6 +40,12 @@ void AVLTree<T>::setElemDestructor(void (*valDest)(T *val))
 }
 
 template<typename T>
+void AVLTree<T>::setElemEvaluator(char (*vEval)(const T val1, const T val2))
+{
+    this->valueEvaluator = vEval;
+}
+
+template<typename T>
 void AVLTree<T>::setFreeOnDestroy(bool val)
 {
     freeOnDestroy = val;
@@ -65,32 +73,66 @@ void AVLTree<T>::setRoot(TreeNode<T> _root)
 template<typename T>
 void AVLTree<T>::clearRecursive( TreeNode<T>* last, void (*valDest)(T *val) )
 {
-    if(!last) return;
+    mout.setCanPrint(DebDef::Debug_AVLTree_clearRecursive);
+    if(!last)
+    {
+        mout<<"[AVLTree::clearRecursive()]: Woohoo! last = NULL!\n";
+        //mout.setCanPrint(true);
+        return;
+    }
+    mout<<"\n[AVLTree::clearRecursive()]: last: "<<last<<" ("<<last->getValue()<<", "<<last->getHeight()<<")\nClearing childs...\n";
 
     clearRecursive(last->getLeftChild(), valDest); //clear childs
     clearRecursive(last->getRightChild(), valDest);
 
+    mout<<"[AVLTree::clearRecursive()]: clearing current node...\n";
     last->clear(valDest); //clear this node
+
     if(freeOnDestroy)
+    {
+        mout<<"[AVLTree::clearRecursive()]: Delete'ing current node!\n";
         delete last;
+    }
+    mout<<"[AVLTree::clearRecursive()]: last = nullptr.\n\n";
     last = nullptr;
+
+    //mout.setCanPrint(true);
 }
 
 template<typename T>
 void AVLTree<T>::clear(void (*valDest)(T *val))
 {
-    clearRecursive(root, valDest);
+    if(valDest)
+        valueDestructor = valDest;
+
+    clearRecursive(root, valueDestructor);
 }
 
 template<typename T>
-void AVLTree<T>::addElement(T val, bool ballance, bool _copy)
+char AVLTree<T>::compareElems(const T el1, const T el2) const
 {
+    if(std::string( typeid( el1 ).name() ) == "Pv") //void pointer identified!
+    {
+        if(valueEvaluator)
+            return valueEvaluator(el1, el2);
+    }
+    //if not, just check elems.
+    if(el1 > el2) return 1;
+    if(el1 < el2) return -1;
+    return 0; // el1 == el2
+}
+
+template<typename T>
+void AVLTree<T>::addElement(const T val, bool ballance, bool _copy)
+{
+    mout.setCanPrint(DebDef::Debug_AVLTree_addElement);
     mout<<"\n--------------------\n[AVLTree::addElement()] got val:"<<val<<"\n";
 
     if( !root ) //empty
     {
         mout<<"[AVLTree::addElement()] Tree's Empty! Setting root with value.\n";
         root = new TreeNode<T>(val);
+        //mout.setCanPrint(true);
         return;
     }
     TreeNode<T>* cur = root;
@@ -103,7 +145,7 @@ void AVLTree<T>::addElement(T val, bool ballance, bool _copy)
         mout<<"Loop no."<<passed<<": cur->height = "<<cur->getHeight()<<"\n";
 
         cur->setHeight(cur->getHeight() + 1); //increment height of this node - we're passing it
-        if(val < cur->getValue())
+        if(compareElems(val, cur->getValue()) < 0)
         {
             if(cur->getLeftChild())
                 cur = cur->getLeftChild();
@@ -116,7 +158,7 @@ void AVLTree<T>::addElement(T val, bool ballance, bool _copy)
                 break;
             }
         }
-        else if(val > cur->getValue())
+        else if(compareElems(val, cur->getValue()) > 0)
         {
             if(cur->getRightChild())
                 cur = cur->getRightChild();
@@ -161,10 +203,11 @@ void AVLTree<T>::addElement(T val, bool ballance, bool _copy)
         //showTree(DataShowMode::None, PointerShowMode::AllPointers);
     }
     mout<<"[AVLTree::addElement()] Done! Return...\n---------------------\n";
+    //mout.setCanPrint(true);
 }
 
 template<typename T>
-void AVLTree<T>::deleteElement(T val)
+void AVLTree<T>::deleteElement(const T val)
 {
     TreeNode<T>* nod = nullptr;
     findElement(val, &nod);
@@ -259,19 +302,19 @@ void AVLTree<T>::deleteNode(TreeNode<T>* node)
 }
 
 template<typename T>
-bool AVLTree<T>::findElement(T val, TreeNode<T>** node) const
+bool AVLTree<T>::findElement(const T val, TreeNode<T>** node) const
 {
     TreeNode<T>* tmp = root;
 
     while( tmp )
     {
-        if(tmp->getValue() == val) //found!!!
+        if(compareElems( tmp->getValue(), val ) == 0) //found!!!
         {
             if(node)
                 (*node) = tmp; //set the node on which we found, if it's not null
             return true;
         }
-        else if(val < tmp->getValue())
+        else if(compareElems( val, tmp->getValue() ) < 0)
             tmp = tmp->getLeftChild();
         else // val > tmp->getValue()
             tmp = tmp->getRightChild();
@@ -283,6 +326,7 @@ template<typename T>
 void AVLTree<T>::ballanceTree(TreeNode<T>* tr)
 {
     if(!tr) return;
+    mout.setCanPrint(DebDef::Debug_AVLTree_ballanceTree);
 
     TreeNode<T>* par = tr->getParent();
     int ctr=0;
@@ -331,6 +375,7 @@ void AVLTree<T>::ballanceTree(TreeNode<T>* tr)
         ctr++;
     }
     mout<<" [AVLTree::ballanceTree()] Done! Passed: "<<ctr<<"\n";
+    //mout.setCanPrint(true);
 }
 
 template<typename T>
@@ -338,8 +383,9 @@ TreeNode<T>* AVLTree<T>::rotateLeft(TreeNode<T>* tr)
 {
     if(TreeTools<T>::areChildsNullWithOutput(tr, 2)) //check right (tmp)
         return tr;
+    mout.setCanPrint(DebDef::Debug_AVLTree_rotateLeft);
     mout<<"\n  [ AVLTree::rotateLeft() ] \n";
-    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tr, true);
+    if(mout.getCanPrint()) TreeTools<T>::showRotationPointers_Tree(*this, tr, true);
 
     mout<<"  [AVLTree::rotLeft()]: set par : ";
     TreeNode<T>* par = tr->getParent();
@@ -347,7 +393,10 @@ TreeNode<T>* AVLTree<T>::rotateLeft(TreeNode<T>* tr)
 
     mout<<par<<"\n";
     if(par == tr)
+    {
+        //mout.setCanPrint(true);
         return tr;
+    }
 
     mout<<"  [AVLTree::rotLeft()]: set tmp : ";
     TreeNode<T>* tmp = tr->getRightChild();
@@ -376,8 +425,10 @@ TreeNode<T>* AVLTree<T>::rotateLeft(TreeNode<T>* tr)
         root->fixHeight();
     }
 
-    mout<<"  After: "<<TreeTools<T>::getRotationPointers_asString(*this, tmp, true)<<"\n";
-    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
+    //mout<<"  After: "<<TreeTools<T>::getRotationPointers_asString(*this, tmp, true)<<"\n";
+    if(mout.getCanPrint()) TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
+    //mout.setCanPrint(true);
+
     return tmp;
 }
 
@@ -386,9 +437,9 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
 {
     if(TreeTools<T>::areChildsNullWithOutput(tr, 1)) //check left (tmp)
         return tr;
+    mout.setCanPrint(DebDef::Debug_AVLTree_rotateRight);
     mout<<"\n  [ AVLTree::rotateRight() ] \n";
-    //mout<<"  Before: "<<getRotationPointers_asString(tr, false)<<"\n";
-    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tr, false);
+    if(mout.getCanPrint()) TreeTools<T>::showRotationPointers_Tree(*this, tr, false);
 
     mout<<"  [AVLTree::rotRight()]: set par : ";
     TreeNode<T>* par = tr->getParent();
@@ -396,7 +447,10 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
 
     mout<<par<<"\n";
     if(par == tr)
+    {
+        //mout.setCanPrint(true);
         return tr;
+    }
 
     mout<<"  [AVLTree::rotRight()]: set tmp : ";
     TreeNode<T>* tmp = tr->getLeftChild();
@@ -426,7 +480,9 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
     }
 
     mout<<"  After: "<<TreeTools<T>::getRotationPointers_asString(*this, tmp, true)<<"\n";
-    if(mout.getOutpMode() != HLog::No_Output) TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
+    if(mout.getCanPrint()) TreeTools<T>::showRotationPointers_Tree(*this, tmp, true);
+    //mout.setCanPrint(true);
+
     return tmp;
 }
 

@@ -4,7 +4,7 @@
 ///================ The Next Gen Output ================///
 ///- - - - - - - -    By Hakeris1010     - - - - - - - -///
 /// Features:                                           ///
-/// - Header-only library                               ///
+/// - (Not-so) Header-only library (impl-defined)       ///
 /// - Template-based C++ "cout" style output            ///
 /// - C Printf style output, based on VA stdarg lib.    ///
 /// - Enum based mode changer.                          ///
@@ -64,7 +64,7 @@ public:
     bool getCloseFile(){ return closeFileEachTime; }
 
     void setCanPrint(bool val){ canPrint = val; }
-    bool getCanPrint(){ return canPrint; }
+    bool getCanPrint(){ return (canPrint || outpMode==No_Output); }
 
     bool cPrintf(const char* format, ... );
 
@@ -96,42 +96,10 @@ Logger& Logger::operator<< (const T& val) //cout - styple operator
     return *this;
 }
 
-inline bool Logger::cPrintf(const char* format, ... ) //print stuff good ol' c-style
-{
-    if(outpMode==OutMode::No_Output || !canPrint)
-        return false;
-
-    va_list args; //initialize arg list
-    va_start(args, format);
-
-    if(outpMode==OutMode::To_Screen)
-        vprintf(format, args);
-
-    else if(outpMode==OutMode::To_File)
-    {
-        if(!cFile /*|| ftell(cFile)<0*/) //if file is closed (NULL)
-        {
-            cFile = fopen(outFileName.c_str(), "w");
-            if(!cFile)
-                return false; //Error happen'd
-        }
-
-        vfprintf(cFile, format, args);
-
-        if(closeFileEachTime)
-        {
-            fclose(cFile);
-            cFile = NULL;
-        }
-    }
-
-    va_end(args); //exit arg list
-
-    return true;
-}
+//inline bool Logger::cPrintf(const char* format, ... ) //print stuff good ol' c-style
 
 }
 
-extern HLog::Logger mout; //default logger object
+extern HLog::Logger mout; //declare default logger object
 
 #endif // LOGGER_H_INCLUDED

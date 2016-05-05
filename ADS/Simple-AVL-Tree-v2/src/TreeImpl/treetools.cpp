@@ -1,5 +1,7 @@
 #include "treetools.h"
-#include "logger.h"
+#include "Tools/logger.h"
+#include "Tools/fun.h"
+#include "debdefines.h"
 
 template<typename T>
 bool TreeTools<T>::areChildsNullWithOutput(TreeNode<T>* tr, char mode) // 0 - both, 1 - left, 2 - right
@@ -74,20 +76,20 @@ template<typename T>
 std::string TreeTools<T>::getRotationPointers_asString(AVLTree<T> tree, TreeNode<T>* tr, bool rotLeft)
 {
     std::string ret;
-    if(tr) ret += "par: " + toString(tr->getParent()) + ", ";
+    if(tr) ret += "par: " + Fun::toString(tr->getParent()) + ", ";
 
-    ret += "tr: " + toString(tr);
+    ret += "tr: " + Fun::toString(tr);
     if(!tr) return ret;
 
-    ret += ", tr->l: " + toString(tr->getLeftChild()) + ", tr->r: " + toString(tr->getRightChild());
+    ret += ", tr->l: " + Fun::toString(tr->getLeftChild()) + ", tr->r: " + Fun::toString(tr->getRightChild());
 
     if(rotLeft && tr->getRightChild())
     {
-        ret += ", tr->r->l: " + toString(tr->getRightChild()->getLeftChild()) + ", tr->r->r: " + toString(tr->getRightChild()->getRightChild());
+        ret += ", tr->r->l: " + Fun::toString(tr->getRightChild()->getLeftChild()) + ", tr->r->r: " + Fun::toString(tr->getRightChild()->getRightChild());
     }
     else if(!rotLeft && tr->getLeftChild())
     {
-        ret += ", tr->l->l: " + toString(tr->getLeftChild()->getLeftChild()) + ", tr->l->r: " + toString(tr->getLeftChild()->getRightChild());
+        ret += ", tr->l->l: " + Fun::toString(tr->getLeftChild()->getLeftChild()) + ", tr->l->r: " + Fun::toString(tr->getLeftChild()->getRightChild());
     }
     return ret;
 }
@@ -111,8 +113,8 @@ void TreeTools<T>::getVectorTable(TreeNode<T> *roo, TreeNode<T> *par, std::vecto
 
     if(roo && show_0_Val_1_Null_2_Ptrs_3_PtVal_4_PtAll != 2) //show values only
     {
-        valueStr += "("  + toString(roo->getValue()); //TODO - modes 3 and 4
-        if(show_0_Val_1_Null_2_Ptrs_3_PtVal_4_PtAll != 3) valueStr += ", " + toString(roo->getHeight()) + ")";
+        valueStr += "("  + Fun::toString(roo->getValue()); //TODO - modes 3 and 4
+        if(show_0_Val_1_Null_2_Ptrs_3_PtVal_4_PtAll != 3) valueStr += ", " + Fun::toString(roo->getHeight()) + ")";
     }
     else if(show_0_Val_1_Null_2_Ptrs_3_PtVal_4_PtAll == 1)
     {
@@ -120,7 +122,7 @@ void TreeTools<T>::getVectorTable(TreeNode<T> *roo, TreeNode<T> *par, std::vecto
     }
     else if(show_0_Val_1_Null_2_Ptrs_3_PtVal_4_PtAll >= 2)
     {
-        valueStr += ":" + toString(roo);
+        valueStr += ":" + Fun::toString(roo);
     }
 
     mout<<"Set thisLevel's\n";
@@ -213,6 +215,7 @@ void TreeTools<T>::getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::v
 
     if(goTillLevel > 0 ? level >= goTillLevel : 0)
         return; //if level limit reach3d
+    mout.setCanPrint(DebDef::Debug_TreeTools_getVectorTable);
 
     if(place < 0) place = 0;
     mout<<"\n[GetVectorTable()]: level= "<<level<<", place= "<<place<<", roo= "<<roo<<"\n";
@@ -225,15 +228,15 @@ void TreeTools<T>::getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::v
         valueStr += "("; //begin getting valuestr
         if(dm != DataShowMode::None && dm != DataShowMode::Height) //value must be print'd
         {
-            valueStr += toString(roo->getValue());
+            valueStr += Fun::toString(roo->getValue());
         }
         if(dm == DataShowMode::ValueNCounter || dm == DataShowMode::AllData) //counter
         {
-            valueStr += "," + toString(roo->getCount());
+            valueStr += "," + Fun::toString(roo->getCount());
         }
         if(dm == DataShowMode::AllData || dm == DataShowMode::Height || dm == DataShowMode::ValueNHeight) //height
         {
-            valueStr += "," + toString(roo->getHeight());
+            valueStr += "," + Fun::toString(roo->getHeight());
         }
         valueStr += ")"; //end valuestr
     }
@@ -246,7 +249,7 @@ void TreeTools<T>::getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::v
     {
         if(valueStr.size() > 0)
             valueStr += ":";
-        valueStr += toString( roo ); //get address string
+        valueStr += Fun::toString( roo ); //get address string
     }
 
     mout<<"Set thisLevel's\n";
@@ -300,7 +303,11 @@ void TreeTools<T>::getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::v
         table.push_back( thisLevel2 );
     }
 
-    if( !roo || roo == par) return; //important! - if parent != current (roo)
+    if( !roo || roo == par)
+    {
+        mout.setCanPrint(true);
+        return; //important! - if parent != current (roo)
+    }
 
     mout<<"Startz0ring r3cursi0n: roo->leftChild= "<<roo->getLeftChild()<<", roo->rightChild= "<<roo->getRightChild()<<"\n";
 
@@ -316,7 +323,7 @@ void TreeTools<T>::getVectorTable_v2( TreeNode<T> *roo, TreeNode<T> *par, std::v
 }
 
 template<typename T>
-void TreeTools<T>::showTree_v2(AVLTree<T> tree, TreeNode<T>* raat, int tillLevel, DataShowMode dm, PointerShowMode pm, BranchShowMode bm, int def_linelen)
+void TreeTools<T>::showTree_v2(const AVLTree<T> tree, TreeNode<T>* raat, int tillLevel, DataShowMode dm, PointerShowMode pm, BranchShowMode bm, int def_linelen)
 {
     if(!raat) raat = tree.getRoot();
 

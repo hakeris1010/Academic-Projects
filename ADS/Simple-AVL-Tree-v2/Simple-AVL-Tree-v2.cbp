@@ -31,16 +31,22 @@
 		<Compiler>
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
+			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/ADS/Simple-AVL-Tree-v2/src" />
 		</Compiler>
-		<Unit filename="avltree.cpp" />
-		<Unit filename="avltree.h" />
-		<Unit filename="logger.h" />
-		<Unit filename="main.cpp" />
-		<Unit filename="treenode.cpp" />
-		<Unit filename="treenode.h" />
-		<Unit filename="treetoolmodes.h" />
-		<Unit filename="treetools.cpp" />
-		<Unit filename="treetools.h" />
+		<Unit filename="src/C-Interface/c_avltree.cpp" />
+		<Unit filename="src/C-Interface/c_avltree.h" />
+		<Unit filename="src/Tools/fun.h" />
+		<Unit filename="src/Tools/logger.cpp" />
+		<Unit filename="src/Tools/logger.h" />
+		<Unit filename="src/TreeImpl/avltree.cpp" />
+		<Unit filename="src/TreeImpl/avltree.h" />
+		<Unit filename="src/TreeImpl/treenode.cpp" />
+		<Unit filename="src/TreeImpl/treenode.h" />
+		<Unit filename="src/TreeImpl/treetoolmodes.h" />
+		<Unit filename="src/TreeImpl/treetools.cpp" />
+		<Unit filename="src/TreeImpl/treetools.h" />
+		<Unit filename="src/debdefines.h" />
+		<Unit filename="src/main.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

@@ -1,6 +1,8 @@
-#include "treenode.h"
 #include <iostream>
 #include <string>
+#include "debdefines.h"
+#include "treenode.h"
+#include "Tools/logger.h"
 
 template<typename T>
 TreeNode<T>::TreeNode(){ }
@@ -31,13 +33,31 @@ void TreeNode<T>::reCreate(T val, TreeNode* par, TreeNode* l_Ch, TreeNode* r_Ch)
 template<typename T>
 void TreeNode<T>::clear( void (*valueDestructor)(T *val) )
 {
+    mout.setCanPrint(DebDef::Debug_TreeNode_Clear);
+    if(height < 0) //maybe not needed
+    {
+        mout<<"\n[TreeNode::clear()]: Node is dead!\n";
+        return;
+    }
+    mout<<"\n[TreeNode::clear()]: this: "<<this<<", v= "<<value<<", h= "<<height<<", c= "<<_count<<"\n";
+
     if(valueDestructor)
+    {
+        mout<<"[TreeNode::clear()]: calling valueDestructor()!\n";
         (*valueDestructor)(&value);
+    }
+    else
+        mout<<"[TreeNode::clear()]: Can't call valueDestuctor() (NULL)\n";
+    mout<<"Val after valDest: "<<value<<"\nDefaulting properties...\n";
+
     height = -1;
     _count = 0;
     parent = nullptr; //maybe bad
     rChild = nullptr;
     lChild = nullptr;
+
+    mout<<"Done!\n\n";
+    mout.setCanPrint(true);
 }
 
 template<typename T>
