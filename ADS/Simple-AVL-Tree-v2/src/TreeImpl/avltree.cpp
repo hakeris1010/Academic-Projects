@@ -34,15 +34,21 @@ AVLTree<T>::~AVLTree()
 }
 
 template<typename T>
-void AVLTree<T>::setElemDestructor(void (*valDest)(T *val))
+void AVLTree<T>::setElemDestructor(void (*valDest)(T *))
 {
     this->valueDestructor = valDest;
 }
 
 template<typename T>
-void AVLTree<T>::setElemEvaluator(char (*vEval)(const T val1, const T val2))
+void AVLTree<T>::setElemEvaluator(char (*vEval)(T, T))
 {
     this->valueEvaluator = vEval;
+}
+
+template<typename T>
+void AVLTree<T>::setElemShower(const char* (*eShow)(T))
+{
+    this->elemShower = eShow;
 }
 
 template<typename T>
@@ -489,7 +495,7 @@ TreeNode<T>* AVLTree<T>::rotateRight(TreeNode<T>* tr)
 template<typename T>
 void AVLTree<T>::showTree( DataShowMode dm, PointerShowMode pm, BranchShowMode bm ) const
 {
-    TreeTools<T>::showTree_v2(*this, this->getRoot(), -1, dm, pm, bm);
+    TreeTools<T>::showTree_v2(*this, this->getRoot(), elemShower, -1, dm, pm, bm);
 
     //old
     //TreeTools<T>::showTree(*this, this->getRoot(), -1, ((mode >= 0 && mode < 5) ? mode : 0 ));

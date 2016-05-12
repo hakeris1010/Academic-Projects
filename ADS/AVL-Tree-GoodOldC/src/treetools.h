@@ -8,6 +8,32 @@
 //Zutut defines.
   //nothing by now.
 
+enum DataShowMode
+{
+    DSM_None = 0,
+    DSM_Value,
+    DSM_Height,
+    DSM_ValueNCounter,
+    DSM_ValueNHeight,
+    DSM_AllData
+};
+
+enum PointerShowMode
+{
+    PSM_NoPointers = 0,
+    PSM_NullOnly,
+    PSM_AllPointers
+};
+
+enum BranchShowMode
+{
+    BSM_AllBranches = 0,
+    BSM_Left,
+    BSM_Right,
+    BSM_LeftOnStart,
+    BSM_RightOnStart
+};
+
 //Zutut funkshons.
 //void TreeTools_showAVLTree(const AVLTree* const tree, char dataShowmode, char pointerShowmode, char branchShowmode);
 

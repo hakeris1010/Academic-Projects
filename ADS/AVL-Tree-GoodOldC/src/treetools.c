@@ -5,7 +5,7 @@
 #define TREETOOL_MAX_LINELEN     80
 
 void TreeTools_priv_getVectorTable( const TreeNode* const roo, const TreeNode* const par, CStringVector* table, unsigned int level, \
-            unsigned int place, char isLeft, int goTillLevel, char dam, char pom, char brm )
+            unsigned int place, char isLeft, int goTillLevel, char dm, char pm, char bm )
 {
     hlog_setTurnOnLog(1); //turn log on - off
 
@@ -16,22 +16,23 @@ void TreeTools_priv_getVectorTable( const TreeNode* const roo, const TreeNode* c
     hlogf("\n[GetVectorTable()]: level= %d, place= %d, roo= %p\n", level, place, roo);
 
     char* thisLevel1 = NULL;
-    char* thisLevel2 = NULl;
+    char* thisLevel2 = NULL;
     char* valueStr = NULL;
 
     if(roo) //data show modes, roo must exist
     {
         hstr_addToString(&valueStr, "("); //begin getting valuestr
-        if(dm != DataShowMode::None && dm != DataShowMode::Height) //value must be print'd
+        if(dm != DSM_None && dm != DSM_Height) //value must be print'd
         {
+            hstr_addToString(&valueStr, roo->)
             valueStr += toString(roo->getValue());
 
         }
-        if(dm == DataShowMode::ValueNCounter || dm == DataShowMode::AllData) //counter
+        if(dm == DSM_ValueNCounter || dm == DSM_AllData) //counter
         {
             valueStr += "," + toString(roo->getCount());
         }
-        if(dm == DataShowMode::AllData || dm == DataShowMode::Height || dm == DataShowMode::ValueNHeight) //height
+        if(dm == DSM_AllData || dm == DSM_Height || dm == DSM_ValueNHeight) //height
         {
             valueStr += "," + toString(roo->getHeight());
         }
@@ -42,7 +43,7 @@ void TreeTools_priv_getVectorTable( const TreeNode* const roo, const TreeNode* c
         valueStr += "(NULL)";
     }
 
-    if(pm == PointerShowMode::AllPointers)
+    if(pm == PSM_AllPointers)
     {
         if(valueStr.size() > 0)
             valueStr += ":";
@@ -60,7 +61,7 @@ void TreeTools_priv_getVectorTable( const TreeNode* const roo, const TreeNode* c
     if(curPlace < 0) curPlace = 0;
 
     mout<<"Set curPlace, = "<<curPlace<<"\n";
-    if( level > 0 && (pm != PointerShowMode::NoPointers ? 1 : (int)roo) ) // set rodykles
+    if( level > 0 && (pm != PSM_NoPointers ? 1 : (int)roo) ) // set rodykles
     {
         mout<<"Level>0, setting rodykl string\n";
         if(place >= thisLevel1.size())
@@ -106,10 +107,10 @@ void TreeTools_priv_getVectorTable( const TreeNode* const roo, const TreeNode* c
 
     //TODO: Optimize new positions more.
 
-    if(/*roo != roo->getLeftChild() &&*/ (level==0 ? (bm != RightOnStart) : 1) && bm != Right) //everything except when branchMode == right only
+    if(/*roo != roo->getLeftChild() &&*/ (level==0 ? (bm != BSM_RightOnStart) : 1) && bm != BSM_Right) //everything except when branchMode == right only
         getVectorTable_v2(roo->getLeftChild(), roo, table, level+1, curPlace - 1, true, goTillLevel, dm, pm, bm );
 
-    if(/*roo != roo->getRightChild() &&*/ (level==0 ? (bm != LeftOnStart) : 1) && bm != Left)
+    if(/*roo != roo->getRightChild() &&*/ (level==0 ? (bm != BSM_LeftOnStart) : 1) && bm != BSM_Left)
         getVectorTable_v2(roo->getRightChild(), roo, table, level+1, curPlace + valueStr.size(), false, goTillLevel, dm, pm, bm);
 
     hlog_setTurnOnLog(1);

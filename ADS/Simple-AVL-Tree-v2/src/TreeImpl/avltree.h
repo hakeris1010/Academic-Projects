@@ -13,6 +13,8 @@
 ****************************************************************************/
 
 #include <vector>
+#include <string>
+
 #include "treenode.h"
 #include "treetoolmodes.h"
 
@@ -27,8 +29,8 @@ private:
     bool freeOnDestroy = true;
 
     void (*valueDestructor)(T* val) = nullptr;
-    char (*valueEvaluator)(const T val1, const T val2) = nullptr;
-    std::string (*elemShower)(const T val) = nullptr;
+    char (*valueEvaluator)(T val1, T val2) = nullptr;
+    const char* (*elemShower)(T val) = nullptr; //c-string for compatibility
 
     char compareElems(const T el1, const T el2) const;
 
@@ -43,11 +45,13 @@ public:
     void setRoot(TreeNode<T> st);
     void setFreeOnDestroy(bool val);
     bool getFreeOnDestroy() const;
-    void setElemDestructor(void (*valDest)(T *val));
-    void setElemEvaluator(char (*vEval)(const T val1, const T val2));
 
-    void clearRecursive(TreeNode<T>* last = nullptr, void (*valDest)(T *val) = nullptr);
-    void clear(void (*valDest)(T *val) = nullptr);
+    void setElemDestructor(void (*valDest)(T*));
+    void setElemEvaluator(char (*vEval)(T, T));
+    void setElemShower(const char* (*eShow)(T));
+
+    void clearRecursive(TreeNode<T>* last = nullptr, void (*valDest)(T*) = nullptr);
+    void clear(void (*valDest)(T*) = nullptr);
     void addElement(const T val, bool ballance = true, bool _copy = false);
     void deleteElement(const T val);
     void deleteNode(TreeNode<T>* node);

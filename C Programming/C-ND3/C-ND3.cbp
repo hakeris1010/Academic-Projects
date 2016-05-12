@@ -12,6 +12,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-Wall" />
 					<Add option="-g" />
 				</Compiler>
 			</Target>
@@ -31,12 +32,22 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-std=c99" />
+			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/C Programming/C-ND3/DequeSrc/Include" />
 		</Compiler>
-		<Unit filename="deque.c">
+		<Unit filename="DequeSrc/include/deque.h" />
+		<Unit filename="DequeSrc/src/Impl1/arraystack.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="deque.h" />
-		<Unit filename="main.c">
+		<Unit filename="DequeSrc/src/Impl1/arraystack.h" />
+		<Unit filename="DequeSrc/src/Impl1/deque.c">
+			<Option compilerVar="CC" />
+			<Option compile="0" />
+			<Option link="0" />
+		</Unit>
+		<Unit filename="DequeSrc/src/Impl1/deque2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="DequeSrc/test/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

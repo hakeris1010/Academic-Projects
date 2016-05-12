@@ -3,6 +3,7 @@
 #include "Tools/logger.h"
 #include "Tools/fun.h"
 #include "TreeImpl/avltree.h"
+#include "C-Interface/c_avltree.h"
 #include "debdefines.h"
 
 void valDest_int(int* val)
@@ -69,11 +70,11 @@ void valDest_voidInt(void** val)
     mout<<"[valueDestructor()]: *val delete'd. *val = NULL. Done!\n";
 }
 
-std::string elemToString(const void* val)
+const char* elemToString(void* val)
 {
     /*char st[16];
     sprintf(st, "%d\0", *((int*)val));*/
-    return std::string(Fun::toString(*((int*)val)));
+    return std::string(Fun::toString(*((int*)val))).c_str();
 }
 
 void* voidifyInt(int val)
@@ -90,6 +91,7 @@ void userTest_int()
     AVLTree<void*> tree;
     tree.setElemDestructor(valDest_voidInt);
     tree.setElemEvaluator(elemEvaluator_voidInt);
+    tree.setElemShower(elemToString);
 
     int n = Fun::getValidatedConInt("\nEnter how many nums you'll write.\n>> ", 1);
 
@@ -124,15 +126,45 @@ void userTest_int()
     mout<<"Clear() ended!\n\n";
 }
 
-void userTest_voidPtr()
+void C_Test_VoidPointr()
 {
+    C_AVLTree cavl;
+    avl_initTree(&cavl);
+    avl_setCallbacks(&cavl, valDest_voidInt, elemEvaluator_voidInt, elemToString);
 
+    int n = Fun::getValidatedConInt("\nEnter how many nums you'll write.\n>> ", 1);
+    for(int i=0; i<n; i++)
+    {
+        int tm = Fun::getValidatedConInt("["+Fun::toString(i)+"]: ");
+        avl_addElement( &cavl, voidifyInt(tm), 0, 1 );
+    }
+
+    avl_showTree(cavl, (char)DataShowMode::ValueNHeight, 0, 0);
+
+    std::cout<<"\n* - * - * - * - * - * - * -\n";
+
+    int elem2delete = Fun::getValidatedConInt("\nEnter elem2delete\n>> ");
+    std::cout<<"\nDeleting elem: "<<elem2delete<<"\n";
+    avl_deleteElement( &cavl, voidifyInt(elem2delete) );
+
+    avl_showTree(cavl, (char)DataShowMode::ValueNHeight, 0, 0);
+
+    int searchFor = Fun::getValidatedConInt("\nEnter elem2search\n>> ");
+    std::cout<<"\nSearhing for element: "<<searchFor<<"\n";
+
+    if(avl_findElement(cavl, voidifyInt(searchFor)))
+        std::cout<<"Element F O U N D !!!\n";
+    else
+        std::cout<<"Element not found.\n";
+
+    avl_clearTree(&cavl, 1);
+    mout<<"Clear() ended!\n\n";
 }
 
 
 int main()
 {
-    userTest_int();
+    C_Test_VoidPointr();
 
     return 0;
 }

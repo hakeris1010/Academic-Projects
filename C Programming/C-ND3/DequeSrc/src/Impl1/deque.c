@@ -44,8 +44,7 @@ struct InternalStructs
 
     //info about 1 elem
     int elemSize;
-    void* (*allocatorCallback)(void* address, ... );
-    int (*deallocatorCallback)(void* elem);
+    int (*deallocatorCallback)(TYPE* elem);
     int (*evaluatorCallback)(void* elem);
 };
 
