@@ -4,18 +4,18 @@
 
 void paddingTest()
 {
-    int newSize=0, paddingFact=2;
-    //newSize += (newSize/paddingFact + 1)*paddingFact - newSize;
+    int siz=0, paddin=8;
+    //siz = siz + (paddin - siz%(paddin+1)); //set new size, with padding
 
     for(int i=0; i<25; i++)
     {
-        newSize=i;
-        int add = (newSize/paddingFact + 1)*paddingFact - newSize;
-        printf("size: %d, add: %d, ", newSize, add);
+        siz=i;
+        int add = ( siz%paddin ? (paddin - siz%paddin) : 0 ); //set new size, with padding - siz;
+        printf("size: %d, add: %d, ", siz, add);
 
-        newSize += add;
+        siz += add;
 
-        printf("newSize: %d\n", newSize);
+        printf("siz: %d\n", siz);
     }
 }
 
@@ -23,7 +23,8 @@ int main()
 {
     printf("Calm down, just testing!\n\n");
 
-    dequePlayground1();
+    Deque_dequePlayground1();
+    //paddingTest();
 
     return 0;
 }

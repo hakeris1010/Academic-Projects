@@ -1,36 +1,99 @@
+/** Main header of Deque1337 library.
+   Copyright (C) 2016 Hakeris1010.
+
+This file is part of Deque-1337.
+
+Deque-1337 is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Deque-1337 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
+
+/* This file contains the Abstract Data Type (ADT) " Deque(ue) "
+   function declarations and basic C-structure, also the
+   Typedef'd type which will be used in the structure. */
+
+/* Deque1337 implementation is generic (can be used with various types).
+    All operations are Standard, but when using Pointer TYPE, Deallocation and Element Evaluation are managed
+    by the use of CALLBACK Funtions (You must pass a function's address to the ADT).
+
+    The structure of the Callbacks:
+    - Deallocator: " void (*deallocatorCallback)(TYPE* elem) "
+
+      Example: if TYPE is void*, function looks like
+      void (*foo)(void** elem)
+
+    - Evaluator: " char (*evaluatorCallback)(const TYPE el1, const TYPE el2) "
+      Function is implemented like ( el1 - el2 ), and must return:
+       0  , if el1 == el2
+       1  , if el1 > el2
+       -1 , if el1 < el2
+
+      Example: if TYPE is void*, function looks like
+      char (*foo)(const void* el1, const void* el2)
+*/
+
 #ifndef DEQUE_H_INCLUDED
 #define DEQUE_H_INCLUDED
 
 //This is the type we'll be using in a deque.
 typedef void* TYPE;
 
-struct Deque
+typedef struct Deque
 {
     void* internals;
     char* name;
-};
+} Deque;
 
-//create, set, clear
-char create(struct Deque* d);
-char create_from_array(struct Deque* d, int n, const TYPE* arr);
+// Create, set and clear functions.
 
-char set_callbacks(struct Deque* d, void (*_deallocatorCallback)(TYPE* elem), char (*_evaluatorCallback)(const TYPE el1, const TYPE el2) );
+/* Deque_create arguments:
+   ptr_copy:
+   - ONLY if TYPE is a POINTER, ptr_copy is used like this:
+     ~ 1 , If you want to COPY contents of an element pointed to by TYPE (Create a new block), and insert it into Deque
+     ~ 0 , DON'T COPY - put the passed TYPE pointer straight to the structure
+   - Otherwise, ptr_copy is ignored.
 
-void clear(struct Deque* d);
+   ptr_sizeofElem:
+   - 0 , if TYPE is NOT a pointer
+   - sizeof( elem_pointed_by_TYPE ) , if TYPE is a pointer AND ptr_copy is set to non-zero.
 
-//standard
-void push_back (struct Deque* d, const TYPE elem);
-void push_front(struct Deque* d, const TYPE elem);
-TYPE pop_back (struct Deque* d);
-TYPE pop_front(struct Deque* d);
-TYPE back (struct Deque* d);
-TYPE front(struct Deque* d);
+   If You pass these 2 arguments as Non-Zero when using Non-Pointer TYPE, Crashes are very likely to occur!!!
+*/
+char Deque_create(struct Deque* d, char ptr_copy, size_t ptr_sizeofElem );
 
-//search
-int linear_search(struct Deque* d, const TYPE elemToSearch);
+// Sets the Callback functions which will be used for Deallocating the memory used by Pointer types, and Evaluating 2 types (Equal, larger, or smaller).
+// More about the Callbacks higher.
+void Deque_set_callbacks(struct Deque* d, void (*_deallocatorCallback)(TYPE* elem), char (*_evaluatorCallback)(const TYPE el1, const TYPE el2) );
+
+// Clears the Deque structure (And all of it's elements).
+void Deque_clear(struct Deque* d);
+
+// Standard Operations.
+// Insert an element 'elem' at the Back or Front of the deque.
+void Deque_push_back (struct Deque* d, const TYPE elem);
+void Deque_push_front(struct Deque* d, const TYPE elem);
+
+// Return an element from Back or Front of the deque, and then Remove that element.
+TYPE Deque_pop_back (struct Deque* d);
+TYPE Deque_pop_front(struct Deque* d);
+
+// Just return an element from Back or Front.
+TYPE Deque_back (struct Deque* d);
+TYPE Deque_front(struct Deque* d);
+
+// Linear Search for an element inside the Deque.
+int Deque_linear_search(struct Deque* d, const TYPE elemToSearch);
 
 //4 t3st1ng pUrp053s
 
-void dequePlayground1();
+void Deque_dequePlayground1();
 
 #endif // DEQUE_H_INCLUDED

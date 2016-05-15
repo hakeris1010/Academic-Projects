@@ -39,11 +39,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="DequeSrc/src/Impl1/arraystack.h" />
-		<Unit filename="DequeSrc/src/Impl1/deque.c">
-			<Option compilerVar="CC" />
-			<Option compile="0" />
-			<Option link="0" />
-		</Unit>
 		<Unit filename="DequeSrc/src/Impl1/deque2.c">
 			<Option compilerVar="CC" />
 		</Unit>
