@@ -19,6 +19,16 @@ void paddingTest()
     }
 }
 
+void Deallocate_Int(void** intValue)
+{
+    if(!intValue ? 1 : !(*intValue))
+        return;
+    printf("\n[TestoDealloc]: Pointer initialized:\nptr= %p, *ptr= %p, *((int*)(*ptr))= %d\n", intValue, *intValue, *((int*)(*intValue)));
+    printf("[TestoDealloc]: Freeing block pointed to by pointer... ");
+    free( *intValue );
+    printf("Done!\n");
+}
+
 int main()
 {
     printf("Calm down, just testing!\n\n");

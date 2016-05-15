@@ -1,4 +1,4 @@
-/** Impl1 implementaion's main file of Deque1337 library.
+/** Impl1 implementaion's main file of Deque-1337 library.
    Copyright (C) 2016 Hakeris1010.
 
 This file is part of Deque-1337.
@@ -19,6 +19,17 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 /* This file contains the Abstract Data Type (ADT) " Deque(ue) "
    function definintions and implementations and the Internal Structure
    of the implementation. */
+
+/* ChangeLog:
+   * v0.1 :
+     - Created InternalStructs, Ballancer, Started using ArrayStack, created barebones of Deque functions,
+       basic ArrayStack features and ballancing tested.
+   * v0.2 :
+     - Deque Functions fully impelemented. Added options to shrink and copy elems if they're pointers.
+     - Added SmartPop v0.1 using Deque_priv_pop function.
+     - More smart things overall.
+     - But! If you pass bad copy_ptr and elem_size params when creating, nobody will save you from Crash! (It's not C++ or C#, after all).
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +55,16 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #define DEQ_DEFAULT_COPY           0
 #define DEQ_DEFAULT_SHRINK         1
 
-//implementacine struktura.
+//Error static var and Enum
+enum DequeErrors
+{
+    No_Error = 0,
+    Bad_Alloc
+};
+
+static int errCode = No_Error;
+
+//Implementational structure.
 typedef struct InternalStructs
 {
     //deque implementation data
@@ -212,82 +232,111 @@ void Deque_clear(struct Deque* d)
     if(d->internals)
     {
         InternalStructs_Clear( (InternalStructs*)(d->internals), 0 );
+        free(d->internals);
         d->internals = NULL;
     }
 }
 
-//standard
-void Deque_priv_push(ArrayStack* stk, const TYPE elem, size_t elSiz, char copy)
+//Private operations
+TYPE priv_GetDummyType()
 {
-    if(!stk) return;
-    if(copy) //only works with pointer types!
-    {
-        TYPE blok = (TYPE) malloc( elSiz ); //elSiz - the size of element pointed to by TYPE.
-        if(!blok)
-        {
-            return;
-        }
-        memcpy(blok, elem, elSiz);
-        ArrayStack_push( stk, blok );
-    }
-    else
-        ArrayStack_push( stk, elem );
+    TYPE t;
+    memset(&t, 0, sizeof(TYPE));
+    return t;
 }
 
+void Deque_priv_push(InternalStructs* inp, const TYPE elem, char back)
+{
+    if(!inp) return;
+    ArrayStack* tmp = ( back ? &(inp->backArr) : &(inp->frontArr) );
+    if(inp->copy) //only works with pointer types!
+    {
+        TYPE blok = (TYPE) malloc( inp->elemSize ); //elSiz - the size of element pointed to by TYPE.
+        if(!blok)
+        {
+            errCode = Bad_Alloc;
+            return;
+        }
+        memcpy(blok, elem, inp->elemSize);
+        ArrayStack_push( tmp, blok );
+    }
+    else
+        ArrayStack_push( tmp, elem );
+    InternalStructs_ballanceArrays( inp );
+}
+
+TYPE Deque_priv_pop(InternalStructs* ints, char back)
+{
+    if(!ints ? 1 : ( !(ints->backArr.siz) || !(ints->frontArr.siz) ))
+        return priv_GetDummyType();
+
+    ArrayStack* tmp = ( back ? &(ints->backArr) : &(ints->frontArr) );
+    size_t pozo = tmp->siz - 1;
+    if(tmp->siz == 0)
+    {
+        tmp = ( back ? &(ints->frontArr) : &(ints->backArr) );
+        pozo = 0;
+    }
+    TYPE elem;
+    if(ints->copy) //TYPE is a pointer.
+    {
+        elem = (TYPE) malloc( ints->elemSize );
+        if(!elem)
+        {
+            errCode = Bad_Alloc;
+            return priv_GetDummyType();
+        }
+        memcpy( elem, ArrayStack_getElement( *tmp, pozo ), ints->elemSize );
+        ArrayStack_deleteElem( tmp, pozo, ints->deallocatorCallback, ints->shrink );
+    }
+    else
+    {
+        elem = ArrayStack_getElement( *tmp, pozo );
+        --(tmp->siz);
+    }
+    InternalStructs_ballanceArrays( ints );
+    return elem;
+}
+
+//Public operations
 void Deque_push_back(struct Deque* d, const TYPE elem)
 {
     if(!d ? 1 : !d->internals) return;
-    InternalStructs* inp = (InternalStructs*)(d->internals);
-    Deque_priv_push( &(inp->backArr), elem, inp->elemSize, inp->copy );
-    InternalStructs_ballanceArrays( inp );
+    Deque_priv_push( (InternalStructs*)(d->internals), elem, 1 );
 }
 
 void Deque_push_front(struct Deque* d, const TYPE elem)
 {
     if(!d ? 1 : !d->internals) return;
-    InternalStructs* inp = (InternalStructs*)(d->internals);
-    Deque_priv_push( &(inp->frontArr), elem, inp->elemSize, inp->copy );
-    InternalStructs_ballanceArrays( inp );
+    Deque_priv_push( (InternalStructs*)(d->internals), elem, 0 );
 }
 
 TYPE Deque_pop_back(struct Deque* d)
 {
-    if(!d ? 1 : !d->internals) return (TYPE)0;
-    InternalStructs* inp = (InternalStructs*)(d->internals);
-    TYPE tmp = ArrayStack_getElement( inp->backArr, inp->backArr.siz - 1 );
-    if(inp->copy)
-        ArrayStack_deleteElem( &(inp->backArr), inp->backArr.siz - 1, inp->deallocatorCallback, inp->shrink );
-    else
-        --(inp->backArr.siz);
-
-    InternalStructs_ballanceArrays( inp );
-    return tmp;
+    if(!d ? 1 : !d->internals)
+        return priv_GetDummyType();
+    return Deque_priv_pop( (InternalStructs*)(d->internals), 1 );
 }
 
 TYPE Deque_pop_front(struct Deque* d)
 {
-    if(!d ? 1 : !d->internals) return (TYPE)0;
-    InternalStructs* inp = (InternalStructs*)(d->internals);
-    TYPE tmp = ArrayStack_getElement( inp->frontArr, inp->frontArr.siz - 1 );
-    if(inp->copy)
-        ArrayStack_deleteElem( &(inp->frontArr), inp->frontArr.siz - 1, inp->deallocatorCallback, inp->shrink );
-    else
-        --(inp->frontArr.siz);
-
-    InternalStructs_ballanceArrays( inp );
-    return tmp;
+    if(!d ? 1 : !d->internals)
+        return priv_GetDummyType();
+    return Deque_priv_pop( (InternalStructs*)(d->internals), 0 );
 }
 
 TYPE Deque_back(struct Deque* d)
 {
-    if(!d ? 1 : !d->internals) return (TYPE)0;
+    if(!d ? 1 : !d->internals)
+        return priv_GetDummyType();
     InternalStructs* inp = (InternalStructs*)(d->internals);
     return ArrayStack_getElement( inp->backArr, inp->backArr.siz - 1 );
 }
 
 TYPE Deque_front(struct Deque* d)
 {
-    if(!d ? 1 : !d->internals) return (TYPE)0;
+    if(!d ? 1 : !d->internals)
+        return priv_GetDummyType();
     InternalStructs* inp = (InternalStructs*)(d->internals);
     return ArrayStack_getElement( inp->frontArr, inp->frontArr.siz - 1 );
 }
@@ -317,7 +366,7 @@ void testoDeallocator(void** intValue)
 
 char* testoIntoShower(const void* elem)
 {
-    if(!elem) return NULL;
+    if(!elem) return NULL; //this
 
     char* blok = (char*)malloc( sizeof(char) * 16 );
     sprintf(blok, "%d", *((int*)elem));
