@@ -1,4 +1,4 @@
-/** Main header of Deque1337 library.
+/** Main header of Deque-1337 library.
    Copyright (C) 2016 Hakeris1010.
 
 This file is part of Deque-1337.

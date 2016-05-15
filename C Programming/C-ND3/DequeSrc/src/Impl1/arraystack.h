@@ -1,4 +1,4 @@
-/** Impl1 ArrayStack interface of Deque1337 library.
+/** Impl1 ArrayStack interface of Deque-1337 library.
    Copyright (C) 2016 Hakeris1010.
 
 This file is part of Deque-1337.
