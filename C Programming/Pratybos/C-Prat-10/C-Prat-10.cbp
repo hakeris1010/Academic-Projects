@@ -2,22 +2,21 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="C-ND3" />
+		<Option title="C-Prat-10" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/C-ND3" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/C-Prat-10" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-Wall" />
 					<Add option="-g" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/C-ND3" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/C-Prat-10" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -31,25 +30,18 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-std=c99" />
-			<Add directory="C:/Users/KestutisAdmin/Documents/CodeBlocks Projects/Academic-Projects/C Programming/C-ND3/DequeSrc/include" />
 		</Compiler>
-		<Unit filename="DequeSrc/include/deque.h" />
-		<Unit filename="DequeSrc/src/Impl1/arraystack.c">
+		<Unit filename="src/f.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="DequeSrc/src/Impl1/arraystack.h" />
-		<Unit filename="DequeSrc/src/Impl1/deque2.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="DequeSrc/test/main.c">
+		<Unit filename="src/f.h" />
+		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>
 			<code_completion />
 			<envvars />
 			<debugger />
-			<lib_finder disable_auto="1" />
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>

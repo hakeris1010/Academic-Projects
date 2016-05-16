@@ -28,7 +28,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
     - Deallocator: " void (*deallocatorCallback)(TYPE* elem) "
 
       Example: if TYPE is void*, function looks like
-      void (*foo)(void** elem)
+      void foo(void** elem)
 
     - Evaluator: " char (*evaluatorCallback)(const TYPE el1, const TYPE el2) "
       Function is implemented like ( el1 - el2 ), and must return:
@@ -37,7 +37,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
        -1 , if el1 < el2
 
       Example: if TYPE is void*, function looks like
-      char (*foo)(const void* el1, const void* el2)
+      char foo(const void* el1, const void* el2)
 */
 
 #ifndef DEQUE_H_INCLUDED
@@ -86,11 +86,14 @@ TYPE Deque_pop_back (struct Deque* d);
 TYPE Deque_pop_front(struct Deque* d);
 
 // Just return an element from Back or Front.
-TYPE Deque_back (struct Deque* d);
-TYPE Deque_front(struct Deque* d);
+TYPE Deque_back (const Deque* d);
+TYPE Deque_front(const Deque* d);
 
 // Linear Search for an element inside the Deque.
-int Deque_linear_search(struct Deque* d, const TYPE elemToSearch);
+int Deque_linear_search(const Deque* d, const TYPE elemToSearch);
+
+// Get current elemCount
+size_t Deque_get_count(const Deque* d);
 
 //4 t3st1ng pUrp053s
 

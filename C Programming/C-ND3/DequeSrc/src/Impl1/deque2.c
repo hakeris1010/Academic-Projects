@@ -50,7 +50,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #define DEQ_VERSION "v0.2"
 
 //Defines of default parameters
-#define DEQ_DEFAULT_BALLANCE_FACT  4
+#define DEQ_DEFAULT_BALLANCE_FACT  2
 #define DEQ_DEFAULT_PADDING        8
 #define DEQ_DEFAULT_COPY           0
 #define DEQ_DEFAULT_SHRINK         1
@@ -325,7 +325,7 @@ TYPE Deque_pop_front(struct Deque* d)
     return Deque_priv_pop( (InternalStructs*)(d->internals), 0 );
 }
 
-TYPE Deque_back(struct Deque* d)
+TYPE Deque_back(const Deque* d)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
@@ -333,7 +333,7 @@ TYPE Deque_back(struct Deque* d)
     return ArrayStack_getElement( inp->backArr, inp->backArr.siz - 1 );
 }
 
-TYPE Deque_front(struct Deque* d)
+TYPE Deque_front(const Deque* d)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
@@ -342,7 +342,7 @@ TYPE Deque_front(struct Deque* d)
 }
 
 //search
-int Deque_linear_search(struct Deque* d, const TYPE elemToSearch)
+int Deque_linear_search(const Deque* d, const TYPE elemToSearch)
 {
     if(!d ? 1 : !d->internals) return 0;
     InternalStructs* inp = (InternalStructs*)(d->internals);
@@ -350,6 +350,13 @@ int Deque_linear_search(struct Deque* d, const TYPE elemToSearch)
     int ba = ArrayStack_linearSearchElem( inp->backArr, elemToSearch, inp->evaluatorCallback );
 
     return ( (fa>=0 || ba>=0) ? 1 : 0 );
+}
+
+size_t Deque_get_count(const Deque* d)
+{
+    if(!d ? 1 : !d->internals) return 0;
+    InternalStructs* inp = (InternalStructs*)(d->internals);
+    return inp->backArr.siz + inp->frontArr.siz;
 }
 
 //--------------------------------------------------
@@ -377,15 +384,16 @@ void Deque_dequePlayground1()
 {
     DEBLOG("[DequePlayground]: Initializing Internals...\n");
     InternalStructs st;
-    size_t sizeofElem_voidPtr = 0;
+    size_t sizeofElem_voidPtr = 0;//sizeof(int);
     char _copy = 0;
+
     InternalStructs_Init( &st, 0, DEQ_DEFAULT_PADDING, DEQ_DEFAULT_BALLANCE_FACT, \
                 (sizeofElem_voidPtr>0 ? sizeofElem_voidPtr : sizeof(TYPE)), _copy, DEQ_DEFAULT_SHRINK, NULL, NULL );
 
     st.deallocatorCallback = testoDeallocator;
 
     DEBLOG("Pushing els 2 frontArray...\n");
-    for(int i=0; i<2; i++)
+    /*for(int i=0; i<2; i++)
     {
         void* elPoin = malloc( sizeof(int) );
         if(!elPoin)
@@ -395,7 +403,7 @@ void Deque_dequePlayground1()
         }
         *((int*)elPoin) = i;
         ArrayStack_push(&(st.frontArr), elPoin);
-    }
+    }*/
 
     DEBLOG("\nPushing els 2 backArray...\n");
     for(int i=0; i<5; i++)
@@ -408,6 +416,8 @@ void Deque_dequePlayground1()
         }
         *((int*)elPoin) = i;
         ArrayStack_push(&(st.backArr), elPoin);
+
+        //free(elPoin);
     }
 
     DEBLOG("\nBefore Ballance:\nShowing frontArr:\n");
