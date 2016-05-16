@@ -50,7 +50,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #define DEQ_VERSION "v0.2"
 
 //Defines of default parameters
-#define DEQ_DEFAULT_BALLANCE_FACT  2
+#define DEQ_DEFAULT_BALLANCE_FACT  1
 #define DEQ_DEFAULT_PADDING        8
 #define DEQ_DEFAULT_COPY           0
 #define DEQ_DEFAULT_SHRINK         1
@@ -146,10 +146,8 @@ int InternalStructs_ballanceArrays(InternalStructs* st)
                     tmpBigger->arr[j-1] = tmpBigger->arr[j];
                 }
             }
-            if(st->copy) //delete last elem. //BUG: Might be Memory Leak.
-                ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink); //FIXME: Destructor deallocates memory pointed to by pointer!
-            else
-                ArrayStack_deleteElem(tmpBigger, j-1, NULL, st->shrink);
+            // Bug Fixed! Feelin' Happy!
+            ArrayStack_deleteElem(tmpBigger, j-1, NULL, st->shrink); //Doesn't need to deallocate anything coz we don't delete any elems, we just push them.
 
             (tmpSmaller->siz)++;
         }
@@ -269,9 +267,9 @@ void Deque_priv_push(InternalStructs* inp, const TYPE elem, char back)
     InternalStructs_ballanceArrays( inp );
 }
 
-TYPE Deque_priv_pop(InternalStructs* ints, char back)
+TYPE Deque_priv_pop(InternalStructs* ints, char back, char del, TYPE ptrToPutElemTo)
 {
-    if(!ints ? 1 : ( !(ints->backArr.siz) || !(ints->frontArr.siz) ))
+    if(!ints ? 1 : ( !(ints->backArr.siz) && !(ints->frontArr.siz) ))
         return priv_GetDummyType();
 
     ArrayStack* tmp = ( back ? &(ints->backArr) : &(ints->frontArr) );
@@ -282,23 +280,38 @@ TYPE Deque_priv_pop(InternalStructs* ints, char back)
         pozo = 0;
     }
     TYPE elem;
-    if(ints->copy) //TYPE is a pointer.
+    if(del)
     {
-        elem = (TYPE) malloc( ints->elemSize );
-        if(!elem)
+        if(ints->copy) //TYPE is a pointer.
         {
-            errCode = Bad_Alloc;
-            return priv_GetDummyType();
+            if(ptrToPutElemTo)
+            {
+                memcpy( ptrToPutElemTo, ArrayStack_getElement( *tmp, pozo ), ints->elemSize );
+                elem = ptrToPutElemTo;
+            }
+            else
+            {
+                elem = (TYPE) malloc( ints->elemSize );
+                if(!elem)
+                {
+                    errCode = Bad_Alloc;
+                    return priv_GetDummyType();
+                }
+                memcpy( elem, ArrayStack_getElement( *tmp, pozo ), ints->elemSize );
+            }
+            ArrayStack_deleteElem( tmp, pozo, ints->deallocatorCallback, ints->shrink ); //Delete it!
         }
-        memcpy( elem, ArrayStack_getElement( *tmp, pozo ), ints->elemSize );
-        ArrayStack_deleteElem( tmp, pozo, ints->deallocatorCallback, ints->shrink );
+        else //TYPE's Not a Pointer.
+        {
+            elem = ArrayStack_getElement( *tmp, pozo );
+            ArrayStack_deleteElem( tmp, pozo, NULL, ints->shrink ); //Delete pointer only, not deallocate anything.
+            //Just decrement size, but not deallocate anything.
+        }
+        InternalStructs_ballanceArrays( ints );
     }
     else
-    {
-        elem = ArrayStack_getElement( *tmp, pozo );
-        --(tmp->siz);
-    }
-    InternalStructs_ballanceArrays( ints );
+        elem = ArrayStack_getElement( *tmp, pozo ); //if not delete, just get.
+
     return elem;
 }
 
@@ -315,51 +328,55 @@ void Deque_push_front(struct Deque* d, const TYPE elem)
     Deque_priv_push( (InternalStructs*)(d->internals), elem, 0 );
 }
 
-TYPE Deque_pop_back(struct Deque* d)
+TYPE Deque_pop_back(struct Deque* d, TYPE ptrToPutElemTo)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
-    return Deque_priv_pop( (InternalStructs*)(d->internals), 1 );
+    return Deque_priv_pop( (InternalStructs*)(d->internals), 1, 1, ptrToPutElemTo );
 }
 
-TYPE Deque_pop_front(struct Deque* d)
+TYPE Deque_pop_front(struct Deque* d, TYPE ptrToPutElemTo)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
-    return Deque_priv_pop( (InternalStructs*)(d->internals), 0 );
+    return Deque_priv_pop( (InternalStructs*)(d->internals), 0, 1, ptrToPutElemTo );
 }
 
 TYPE Deque_back(const Deque* d)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
-    InternalStructs* inp = (InternalStructs*)(d->internals);
-    return ArrayStack_getElement( inp->backArr, inp->backArr.siz - 1 );
+    return Deque_priv_pop( (InternalStructs*)(d->internals), 1, 0, NULL );
 }
 
 TYPE Deque_front(const Deque* d)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
-    InternalStructs* inp = (InternalStructs*)(d->internals);
-    return ArrayStack_getElement( inp->frontArr, inp->frontArr.siz - 1 );
+    return Deque_priv_pop( (InternalStructs*)(d->internals), 0, 0, NULL );
 }
 
 //search
-int Deque_linear_search(const Deque* d, const TYPE elemToSearch)
+int Deque_linear_search(Deque d, const TYPE elemToSearch)
 {
-    if(!d ? 1 : !d->internals) return 0;
-    InternalStructs* inp = (InternalStructs*)(d->internals);
+    if(!d.internals) return 0;
+    InternalStructs* inp = (InternalStructs*)(d.internals);
     int fa = ArrayStack_linearSearchElem( inp->frontArr, elemToSearch, inp->evaluatorCallback );
     int ba = ArrayStack_linearSearchElem( inp->backArr, elemToSearch, inp->evaluatorCallback );
 
     return ( (fa>=0 || ba>=0) ? 1 : 0 );
 }
 
-size_t Deque_get_count(const Deque* d)
+size_t Deque_get_count(Deque d, char mode)
 {
-    if(!d ? 1 : !d->internals) return 0;
-    InternalStructs* inp = (InternalStructs*)(d->internals);
+    if(!d.internals) return 0;
+    InternalStructs* inp = (InternalStructs*)(d.internals);
+
+    if(mode==1)
+        return inp->frontArr.siz;
+    else if(mode==2)
+        return inp->backArr.siz;
+
     return inp->backArr.siz + inp->frontArr.siz;
 }
 

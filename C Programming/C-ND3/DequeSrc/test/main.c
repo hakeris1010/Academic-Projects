@@ -2,31 +2,14 @@
 #include <stdio.h>
 #include "deque.h"
 
-void paddingTest()
-{
-    int siz=0, paddin=8;
-    //siz = siz + (paddin - siz%(paddin+1)); //set new size, with padding
-
-    for(int i=-6; i<25; i++)
-    {
-        siz=i;
-        int add = ( siz%paddin ? (paddin - siz%paddin) : 0 ); //set new size, with padding - siz;
-        printf("size: %d, add: %d, ", siz, add);
-
-        siz += add;
-
-        printf("siz: %d\n", siz);
-    }
-}
-
 void Deallocate_Int(void** intValue)
 {
     if(!intValue ? 1 : !(*intValue))
         return;
-    printf("\n[TestoDealloc]: Pointer initialized:\nptr= %p, *ptr= %p, *((int*)(*ptr))= %d\n", intValue, *intValue, *((int*)(*intValue)));
-    printf("[TestoDealloc]: Freeing block pointed to by pointer... ");
+    printf("\n [TestoDealloc]: Pointer initialized:\n ptr= %p, *ptr= %p, *((int*)(*ptr))= %d\n", intValue, *intValue, *((int*)(*intValue)));
+    //printf("[TestoDealloc]: Freeing block pointed to by pointer... ");
     free( *intValue );
-    printf("Done!\n");
+    //printf("Done!\n");
 }
 
 char Evaluate_Int(const void* intVal1, const void* intVal2)
@@ -37,31 +20,78 @@ char Evaluate_Int(const void* intVal1, const void* intVal2)
     return ( !pt1 ? (!pt2 ? 0 : -1) : (!pt2 ? 1 : ( *pt1 - *pt2 )) );
 }
 
-int main()
+void TestDequeVoidPtr(char copy, char more)
 {
-    printf("Calm down, just testing!\n\n");
-
-    /*Deque deq;
-    if(Deque_create(&deq, 1, sizeof(int))) //will use it with int.
+    Deque deq;
+    if(Deque_create( &deq, copy, (copy ? sizeof(int) : 0) ))
     {
         printf("\nError creating!\n");
         return -1;
     }
     Deque_set_callbacks(&deq, Deallocate_Int, Evaluate_Int);
 
-    for(int i=0; i<2; i++)
+    for(int i=0; i<6; i++)
     {
         int* nuInt = (int*)malloc(sizeof(int));
         *nuInt = i;
 
         Deque_push_back(&deq, nuInt);
 
-        free(nuInt); // we set deque to copy, so we must free this.
+        if(copy)
+            free(nuInt); // we set deque to copy, so we must free this.
+    }
+    printf("\nfrontArr.siz: %d\nbackArr.siz: %d\n\n", Deque_get_count(deq, 1), Deque_get_count(deq, 2));
+
+    while( Deque_get_count(deq, 0) ) //No 'Copy'.
+    {
+        int* elem = NULL;
+        if(copy)
+        {
+            elem = (int*)malloc(sizeof(int));
+            Deque_pop_back(&deq, elem);
+        }
+        else
+            elem = Deque_pop_back(&deq, NULL);
+
+        printf("[%d]: %p : %d\n", Deque_get_count(deq, 0), elem, (elem ? *elem : 0));
+
+        if(elem) //Free it, because reasons.
+            free(elem);
     }
 
-    Deque_clear(&deq);*/
+    Deque_clear(&deq);
+}
 
-    Deque_dequePlayground1();
+void TestDequeInt(char more)
+{
+    Deque deq;
+    if(Deque_create( &deq, 0, 0 ))
+    {
+        printf("\nError creating!\n");
+        return -1;
+    }
+    //Deque_set_callbacks(&deq, Deallocate_Int, Evaluate_Int);
+
+    for(int i=0; i<7; i++)
+    {
+        Deque_push_back(&deq, i);
+    }
+    printf("\nfrontArr.siz: %d\nbackArr.siz: %d\n\n", Deque_get_count(deq, 1), Deque_get_count(deq, 2));
+
+    while( Deque_get_count(deq, 0) ) //Till the end.
+    {
+        printf("[%d]: %d\n", Deque_get_count(deq, 0), Deque_pop_back(&deq, NULL) );
+    }
+
+    Deque_clear(&deq);
+}
+
+int main()
+{
+    printf("Calm down, just testing!\n\n");
+
+    //TestDequeVoidPtr(0);
+    TestDequeInt(0);
 
     return 0;
 }

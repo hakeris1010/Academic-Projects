@@ -33,6 +33,7 @@
 			<Add option="-Wall" />
 			<Add option="-std=c99" />
 			<Add directory="C:/Users/KestutisAdmin/Documents/CodeBlocks Projects/Academic-Projects/C Programming/C-ND3/DequeSrc/include" />
+			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/C Programming/C-ND3/DequeSrc/include" />
 		</Compiler>
 		<Unit filename="DequeSrc/include/deque.h" />
 		<Unit filename="DequeSrc/src/Impl1/arraystack.c">

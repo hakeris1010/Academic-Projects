@@ -26,6 +26,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 
     The structure of the Callbacks:
     - Deallocator: " void (*deallocatorCallback)(TYPE* elem) "
+      If you want Deque itself to deallocate elems when needed, pass it.
 
       Example: if TYPE is void*, function looks like
       void foo(void** elem)
@@ -70,7 +71,7 @@ typedef struct Deque
 char Deque_create(struct Deque* d, char ptr_copy, size_t ptr_sizeofElem );
 
 // Sets the Callback functions which will be used for Deallocating the memory used by Pointer types, and Evaluating 2 types (Equal, larger, or smaller).
-// More about the Callbacks higher.
+// More about the Callbacks higher. If you want deallocation, pass it.
 void Deque_set_callbacks(struct Deque* d, void (*_deallocatorCallback)(TYPE* elem), char (*_evaluatorCallback)(const TYPE el1, const TYPE el2) );
 
 // Clears the Deque structure (And all of it's elements).
@@ -82,18 +83,23 @@ void Deque_push_back (struct Deque* d, const TYPE elem);
 void Deque_push_front(struct Deque* d, const TYPE elem);
 
 // Return an element from Back or Front of the deque, and then Remove that element.
-TYPE Deque_pop_back (struct Deque* d);
-TYPE Deque_pop_front(struct Deque* d);
+// If TYPE is a pointer, and "ptrToPutElemTo" is set non-NULL, data will be put into it.
+// If TYPE is a pointer, but "ptrToPutElemTo" is NULL, a new block will be allocated to hold the popped elem.
+TYPE Deque_pop_back (struct Deque* d, TYPE ptrToPutElemTo);
+TYPE Deque_pop_front(struct Deque* d, TYPE ptrToPutElemTo);
 
 // Just return an element from Back or Front.
 TYPE Deque_back (const Deque* d);
 TYPE Deque_front(const Deque* d);
 
 // Linear Search for an element inside the Deque.
-int Deque_linear_search(const Deque* d, const TYPE elemToSearch);
+int Deque_linear_search(Deque d, const TYPE elemToSearch);
 
-// Get current elemCount
-size_t Deque_get_count(const Deque* d);
+// Get current elemCount: Default mode: 0, other values only for development purposes.
+size_t Deque_get_count(Deque d, char mode);
+
+// Print deque somewhere. Default mode: 0, other values only for development purposes.
+void Deque_print(Deque d, char mode);
 
 //4 t3st1ng pUrp053s
 
