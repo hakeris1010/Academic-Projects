@@ -25,7 +25,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #include <string.h>
 #include "arraystack.h"
 
-#define DEBUG 1 //Use this to print DeBug info.
+#define DEBUG 0 //Use this to print DeBug info.
 
 #if defined (DEBUG) && (DEBUG == 1)
     #define DEBLOG(...) printf(__VA_ARGS__)

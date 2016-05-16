@@ -29,6 +29,11 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
      - Added SmartPop v0.1 using Deque_priv_pop function.
      - More smart things overall.
      - But! If you pass bad copy_ptr and elem_size params when creating, nobody will save you from Crash! (It's not C++ or C#, after all).
+
+   * v0.3 :
+     - Release Candidate 1
+     - Fixed all known bugs, made all functions work as expected.
+     - Tested with void* and int in test/main.c
 */
 
 #include <stdio.h>
@@ -38,7 +43,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #include "deque.h"
 #include "arraystack.h"
 
-#define DEBUG 1 //Use this to print DeBug info.
+#define DEBUG 0 //Use this to print DeBug info.
 
 #if defined (DEBUG) && (DEBUG == 1)
     #define DEBLOG(...) printf(__VA_ARGS__)
@@ -182,7 +187,7 @@ char InternalStructs_Init( InternalStructs* st, char _state, size_t _paddingFact
 void InternalStructs_Clear(InternalStructs* st, char freemode)
 {
     if(!st) return;
-    DEBLOG("\n[InternalStructs_Clear]: Defaulting properties...\n");
+    DEBLOG("\n==============================\n[InternalStructs_Clear]: Defaulting properties...\n");
 
     st->state = 0;
     st->paddingFact = DEQ_DEFAULT_PADDING;
@@ -357,14 +362,17 @@ TYPE Deque_front(const Deque* d)
 }
 
 //search
-int Deque_linear_search(Deque d, const TYPE elemToSearch)
+int Deque_linear_search(Deque d, const TYPE elemToSearch) // Returns -1 if Not Found, otherwise returns elem's index.
 {
-    if(!d.internals) return 0;
+    if(!d.internals) return -1;
     InternalStructs* inp = (InternalStructs*)(d.internals);
     int fa = ArrayStack_linearSearchElem( inp->frontArr, elemToSearch, inp->evaluatorCallback );
     int ba = ArrayStack_linearSearchElem( inp->backArr, elemToSearch, inp->evaluatorCallback );
-
-    return ( (fa>=0 || ba>=0) ? 1 : 0 );
+    if(fa>=0)
+        return inp->frontArr.siz - 1 - fa;
+    if(ba>=0)
+        return inp->frontArr.siz + ba;
+    return -1;
 }
 
 size_t Deque_get_count(Deque d, char mode)

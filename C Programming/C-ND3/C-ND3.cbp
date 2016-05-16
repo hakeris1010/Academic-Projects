@@ -40,7 +40,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="DequeSrc/src/Impl1/arraystack.h" />
-		<Unit filename="DequeSrc/src/Impl1/deque2.c">
+		<Unit filename="DequeSrc/src/Impl1/deque1.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="DequeSrc/test/main.c">

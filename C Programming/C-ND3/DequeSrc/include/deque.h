@@ -93,6 +93,7 @@ TYPE Deque_back (const Deque* d);
 TYPE Deque_front(const Deque* d);
 
 // Linear Search for an element inside the Deque.
+// Returns -1 if Not Found, otherwise returns elem's index.
 int Deque_linear_search(Deque d, const TYPE elemToSearch);
 
 // Get current elemCount: Default mode: 0, other values only for development purposes.
