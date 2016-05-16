@@ -50,7 +50,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #define DEQ_VERSION "v0.2"
 
 //Defines of default parameters
-#define DEQ_DEFAULT_BALLANCE_FACT  2
+#define DEQ_DEFAULT_BALLANCE_FACT  4
 #define DEQ_DEFAULT_PADDING        8
 #define DEQ_DEFAULT_COPY           0
 #define DEQ_DEFAULT_SHRINK         1
@@ -146,7 +146,7 @@ int InternalStructs_ballanceArrays(InternalStructs* st)
                     tmpBigger->arr[j-1] = tmpBigger->arr[j];
                 }
             }
-            ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink);
+            ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink); //FIXME: Destructor deallocates memory pointed to by pointer!
             (tmpSmaller->siz)++;
         }
     }
