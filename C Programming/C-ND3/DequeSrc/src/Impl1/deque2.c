@@ -146,7 +146,11 @@ int InternalStructs_ballanceArrays(InternalStructs* st)
                     tmpBigger->arr[j-1] = tmpBigger->arr[j];
                 }
             }
-            ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink); //FIXME: Destructor deallocates memory pointed to by pointer!
+            if(st->copy) //delete last elem. //BUG: Might be Memory Leak.
+                ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink); //FIXME: Destructor deallocates memory pointed to by pointer!
+            else
+                ArrayStack_deleteElem(tmpBigger, j-1, NULL, st->shrink);
+
             (tmpSmaller->siz)++;
         }
     }
@@ -393,7 +397,7 @@ void Deque_dequePlayground1()
     st.deallocatorCallback = testoDeallocator;
 
     DEBLOG("Pushing els 2 frontArray...\n");
-    /*for(int i=0; i<2; i++)
+    for(int i=0; i<2; i++)
     {
         void* elPoin = malloc( sizeof(int) );
         if(!elPoin)
@@ -403,7 +407,7 @@ void Deque_dequePlayground1()
         }
         *((int*)elPoin) = i;
         ArrayStack_push(&(st.frontArr), elPoin);
-    }*/
+    }
 
     DEBLOG("\nPushing els 2 backArray...\n");
     for(int i=0; i<5; i++)
