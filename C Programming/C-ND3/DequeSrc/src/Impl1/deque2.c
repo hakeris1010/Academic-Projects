@@ -146,7 +146,11 @@ int InternalStructs_ballanceArrays(InternalStructs* st)
                     tmpBigger->arr[j-1] = tmpBigger->arr[j];
                 }
             }
-            ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink);
+            if(st->copy) //delete last elem. //BUG: Might be Memory Leak.
+                ArrayStack_deleteElem(tmpBigger, j-1, st->deallocatorCallback, st->shrink); //FIXME: Destructor deallocates memory pointed to by pointer!
+            else
+                ArrayStack_deleteElem(tmpBigger, j-1, NULL, st->shrink);
+
             (tmpSmaller->siz)++;
         }
     }
@@ -325,7 +329,7 @@ TYPE Deque_pop_front(struct Deque* d)
     return Deque_priv_pop( (InternalStructs*)(d->internals), 0 );
 }
 
-TYPE Deque_back(struct Deque* d)
+TYPE Deque_back(const Deque* d)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
@@ -333,7 +337,7 @@ TYPE Deque_back(struct Deque* d)
     return ArrayStack_getElement( inp->backArr, inp->backArr.siz - 1 );
 }
 
-TYPE Deque_front(struct Deque* d)
+TYPE Deque_front(const Deque* d)
 {
     if(!d ? 1 : !d->internals)
         return priv_GetDummyType();
@@ -342,7 +346,7 @@ TYPE Deque_front(struct Deque* d)
 }
 
 //search
-int Deque_linear_search(struct Deque* d, const TYPE elemToSearch)
+int Deque_linear_search(const Deque* d, const TYPE elemToSearch)
 {
     if(!d ? 1 : !d->internals) return 0;
     InternalStructs* inp = (InternalStructs*)(d->internals);
@@ -350,6 +354,13 @@ int Deque_linear_search(struct Deque* d, const TYPE elemToSearch)
     int ba = ArrayStack_linearSearchElem( inp->backArr, elemToSearch, inp->evaluatorCallback );
 
     return ( (fa>=0 || ba>=0) ? 1 : 0 );
+}
+
+size_t Deque_get_count(const Deque* d)
+{
+    if(!d ? 1 : !d->internals) return 0;
+    InternalStructs* inp = (InternalStructs*)(d->internals);
+    return inp->backArr.siz + inp->frontArr.siz;
 }
 
 //--------------------------------------------------
@@ -377,8 +388,9 @@ void Deque_dequePlayground1()
 {
     DEBLOG("[DequePlayground]: Initializing Internals...\n");
     InternalStructs st;
-    size_t sizeofElem_voidPtr = 0;
+    size_t sizeofElem_voidPtr = 0;//sizeof(int);
     char _copy = 0;
+
     InternalStructs_Init( &st, 0, DEQ_DEFAULT_PADDING, DEQ_DEFAULT_BALLANCE_FACT, \
                 (sizeofElem_voidPtr>0 ? sizeofElem_voidPtr : sizeof(TYPE)), _copy, DEQ_DEFAULT_SHRINK, NULL, NULL );
 
@@ -408,6 +420,8 @@ void Deque_dequePlayground1()
         }
         *((int*)elPoin) = i;
         ArrayStack_push(&(st.backArr), elPoin);
+
+        //free(elPoin);
     }
 
     DEBLOG("\nBefore Ballance:\nShowing frontArr:\n");

@@ -1,4 +1,4 @@
-/** Impl1 ArrayStack implementation of Deque1337 library.
+/** Impl1 ArrayStack implementation of Deque-1337 library.
    Copyright (C) 2016 Hakeris1010.
 
 This file is part of Deque-1337.
@@ -39,6 +39,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 //Default properties define'd
 #define ARRSTACK_SHRINK_FACTOR 2 // if free space exceeds FACTOR paddings, shrink by FACTOR/2 paddings.
 
+//Error enum and Static Errorer
 enum ArrayStackErrors
 {
     No_Error = 0,
