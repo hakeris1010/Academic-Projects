@@ -9,7 +9,7 @@ int main()
     //outp<<"Test.Test.Tebebest.\n";
 
     ThreeNumProblemSolver solv;
-    solv.solve({3,2,1});
+    //solv.solve({3,2,1});
 
     //outp<<"\nNanana\n";
     //outp.close();

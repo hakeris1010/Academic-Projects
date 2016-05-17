@@ -8,6 +8,13 @@
 #include <avltree.h>
 #include <treenode.h>
 
+enum SolveStatus
+{
+    No_Task = 0,
+    Bad_Properties_Start,
+    No_Solution,
+    Solved
+};
 
 class ThreeNumProblemSolver
 {
@@ -16,19 +23,25 @@ private:
     int groupSum = 10;
     size_t addElemsToTree = 8;
 
-    AVLTree<int> dataTree;
+    SolveStatus status = No_Task;
+
+
     std::ostream* thisStream = &(std::cout); //by default, outputting to cout.
-    std::vector<int> unchecked;
-    std::vector<std::vector<int>> checks;
+    std::vector<int> unchecked; //raw array
 
-    bool reject(std::vector<int> cur, TreeNode<int>* c);
-    bool accept(std::vector<int> cur, TreeNode<int>* c);
-    int first(std::vector<int> cur, TreeNode<int>* c);
-    int next(std::vector<int> cur, TreeNode<int>* s);
-    void output(std::vector<int> cur, TreeNode<int>* c);
+    std::vector< std::vector<int> > accepted; //stack o' accepteds
+    std::vector< std::vector<int> > readyForCheck; //stack o' readyChex
 
-    int backTrackAlgo(std::vector<int> cur, TreeNode<int>* c);
-    bool formDataTree(std::vector<int> vec, size_t howMany, TreeNode<int>* c);
+    int sumOfVector(std::vector<int> cur);
+    void returnElemsToUnchecked(std::vector<int>& cur);
+
+    bool reject(std::vector<int> cur);
+    bool accept(std::vector<int> cur);
+    bool first(std::vector<int> cur, std::vector<int>& putNext);
+    bool next(std::vector<int> cur, std::vector<int>& putNext);
+    void output();
+
+    int backTrackAlgo(std::vector<int> cur, int level);
 
 public:
     ThreeNumProblemSolver(){ }
