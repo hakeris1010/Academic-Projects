@@ -4,13 +4,13 @@
 	<Project>
 		<Option title="Backtracking-3-Numbs" />
 		<Option pch_mode="2" />
-		<Option compiler="gcc" />
+		<Option compiler="gnu_gcc_mingw_new_compiler" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/Backtracking-3-Numbs" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
-				<Option compiler="gcc" />
+				<Option compiler="gnu_gcc_mingw_new_compiler" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -19,7 +19,7 @@
 				<Option output="bin/Release/Backtracking-3-Numbs" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
-				<Option compiler="gcc" />
+				<Option compiler="gnu_gcc_mingw_new_compiler" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -30,11 +30,14 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/ADS/Backtracking-3-Numbs/Sources/AVLTree/include" />
 		</Compiler>
+		<Linker>
+			<Add library="AVLTreeTest" />
+			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/ADS/Backtracking-3-Numbs/Sources/AVLTree/lib" />
+		</Linker>
 		<Unit filename="Sources/NumProblem.cpp" />
 		<Unit filename="Sources/NumProblem.h" />
-		<Unit filename="Sources/backtrack.cpp" />
-		<Unit filename="Sources/backtrack.h" />
 		<Unit filename="Sources/main.cpp" />
 		<Extensions>
 			<code_completion />
