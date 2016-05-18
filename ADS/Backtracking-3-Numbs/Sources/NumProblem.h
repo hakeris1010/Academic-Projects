@@ -11,9 +11,16 @@
 enum SolveStatus
 {
     No_Task = 0,
+    Starting_Task,
     Bad_Properties_Start,
     No_Solution,
     Solved
+};
+
+struct NumElement
+{
+    int num;
+    size_t pos;
 };
 
 class ThreeNumProblemSolver
@@ -23,25 +30,29 @@ private:
     int groupSum = 10;
     size_t addElemsToTree = 8;
 
-    SolveStatus status = No_Task;
+    int stepsTaken = 0;
 
+    SolveStatus status = No_Task;
 
     std::ostream* thisStream = &(std::cout); //by default, outputting to cout.
     std::vector<int> unchecked; //raw array
 
     std::vector< std::vector<int> > accepted; //stack o' accepteds
-    std::vector< std::vector<int> > readyForCheck; //stack o' readyChex
 
-    int sumOfVector(std::vector<int> cur);
+    int sumOfVector(const std::vector<int>& cur, const std::vector<int>& positions = std::vector<int>(), char exclude = 1);
     void returnElemsToUnchecked(std::vector<int>& cur);
 
-    bool reject(std::vector<int> cur);
-    bool accept(std::vector<int> cur);
-    bool first(std::vector<int> cur, std::vector<int>& putNext);
-    bool next(std::vector<int> cur, std::vector<int>& putNext);
-    void output();
+    std::vector<int> newVector_IncrementPositions(std::vector<int>& positions);
+    bool positionsEnded(const std::vector<int>& positions);
 
-    int backTrackAlgo(std::vector<int> cur, int level);
+    bool reject(const std::vector<int>& cur, const std::vector<int>& positions);
+    bool accept(const std::vector<int>& cur, const std::vector<int>& positions);
+    bool first(std::vector<int>& putNext, std::vector<int>& stateInData, size_t which );
+    bool next(std::vector<int>& putNext, std::vector<int>& stateInData, size_t which );
+    void output();
+    void printVect(const std::vector<int>& ve, char mode=0);
+
+    int backTrackAlgo(std::vector<int> cur, std::vector<int> stateInData, int level);
 
 public:
     ThreeNumProblemSolver(){ }
