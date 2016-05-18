@@ -1,53 +1,70 @@
 #include <iostream>
 #include <fstream>
 #include "NumProblem.h"
+#include "fun.h"
 
-int countOfChecks = 0;
-
-//print. Mode: 0 - print each elem at new line, with index, and new line at the end.
-//             1 - print all elems at one line, no index, new line at the end.
-//             2 - print each elem at new line, with index, no new line at the end.
-//             3 - print all elems at one line, no index, no new line at the end.
-template<typename T>
-void printVect(const std::vector<T>& ve, char mode=0, std::ostream* thisStream = &(std::cout))
-{
-    if(!thisStream)
-        thisStream = &(std::cout);
-    for(auto ai = ve.begin(); ai < ve.end(); ++ai)
-    {
-        if(!mode%2) (*thisStream)<<"["<<ai - ve.begin()<<"]: ";
-        (*thisStream)<< *ai <<" ";
-        if(!mode%2) (*thisStream)<<"\n";
-    }
-    if(mode<2)
-        (*thisStream)<<"\n";
-}
-
-template<typename T>
-bool isInVector(const std::vector<T>& vec, T val)
-{
-    for(auto ai=vec.begin(); ai<vec.end(); ++ai)
-    {
-        if(val == *ai)
-            return true;
-    }
-    return false;
-}
-
-template<typename T>
-std::vector<T> getVectorFromPositions(const std::vector<T>& values, const std::vector<int>& poses)
-{
-    std::vector<T> retvec( poses.size() );
-    for(size_t i = 0; i < poses.size(); i++)
-    {
-        if(poses[i] < values.size() && poses[i] >= 0)
-            retvec[i] = values[ poses[i] ];
-    }
-    return retvec;
-}
+static int countOfChecks = 0;
 
 //GoodenBooden's
 
+char next(const std::vector<int>& values, std::vector<int>& buff, size_t current, int val = -1)
+{
+    if( current>=buff.size() ? 1 : buff[current]+1 >= values.size() )
+        return 1;
+
+    buff[current] = ((val >= 0 && val < values.size()) ? val : buff[current] + 1);
+    if( (current>0 ? buff[current] <= buff[current-1] : 0) )
+    {
+        //std::cout<<"skip: cur="<<current<<", values[i]="<<values[i]<<", i="<<i<<", buff[cur-1]="<<buff[current-1]<<"\n";
+        return 2;
+    }
+    return 0;
+}
+
+char first(const std::vector<int>& values, std::vector<int>& buff, size_t current, bool resetIfBad = false)
+{
+    if(current >= buff.size())
+        return 1;
+    /*if(resetIfBad)
+    {
+        for(auto ai=buff.begin(); ai<buff.end(); ++ai)
+        {
+            if(*ai < 0 || *ai >= buff.size())
+                *ai = ai - buff.begin();
+        }
+    }*/
+
+    return next( values, buff, current, 0 );
+}
+
+void AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current)
+{
+    if(!values.size() || values.size() % buff.size() || current >= buff.size())
+        return;
+
+    int ret = first(values, buff, current);
+
+    while(ret != 1 && countOfChecks < 100)
+    {
+        if(ret==0)
+        {
+            AllPossibleVariants_bt(values, buff, current+1);
+        }
+        /*if(current == buff.size()-1)
+        {*/
+            std::cout<<"["<<countOfChecks<<"]: ( ";
+            Fun::printVect( Fun::getVectorFromPositions(values, buff), 3 );
+            std::cout<<") pos: ( ";
+            Fun::printVect( buff, 3);
+            std::cout<<"), cur: "<<current<<"\n";
+        //}
+        countOfChecks++;
+
+        ret = next(values, buff, current);
+    }
+}
+
+//good old one
 void AllPossibleVariants(const std::vector<int>& values, std::vector<int>& buff, size_t current)
 {
     if(!values.size() || values.size() % buff.size() || current >= buff.size())
@@ -59,16 +76,16 @@ void AllPossibleVariants(const std::vector<int>& values, std::vector<int>& buff,
             //std::cout<<"skip: cur="<<current<<", values[i]="<<values[i]<<", i="<<i<<", buff[cur-1]="<<buff[current-1]<<"\n";
             continue;
         }
-
         buff[current] = i;
+
         AllPossibleVariants(values, buff, current+1);
 
         if(current == buff.size()-1)
         {
             std::cout<<"["<<countOfChecks<<"]: ( ";
-            printVect( getVectorFromPositions(values, buff), 3 );
+            Fun::printVect( Fun::getVectorFromPositions(values, buff), 3 );
             std::cout<<") pos: ( ";
-            printVect( buff, 3);
+            Fun::printVect( buff, 3);
             std::cout<<")\n";
             countOfChecks++;
         }
@@ -82,14 +99,16 @@ int main()
     std::cout<<"Hello. Testing.\n";
 
     std::vector<int> veco( {1,2,3,4,5,6} ); //all numbers in data
-    std::vector<int> group( 3, -1 );        //group of numbers (2)
+    //std::vector<int> group( 3, -1 );        //group of numbers (2)
+    std::vector<int> group( {0,1,2} ); //with bt
 
-    printVect(group, 1);
-
+    std::cout<<"GroupStart: ";
+    Fun::printVect(group, 1);
     std::cout<<"Veco: ";
-    printVect(veco, 1);
+    Fun::printVect(veco, 1);
     std::cout<<"\n";
 
+    //AllPossibleVariants_bt(veco, group, 0);
     AllPossibleVariants(veco, group, 0);
 
     // ThreeNumProblemSolver solv;

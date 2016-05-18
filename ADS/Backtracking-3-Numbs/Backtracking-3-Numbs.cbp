@@ -38,6 +38,7 @@
 		</Linker>
 		<Unit filename="Sources/NumProblem.cpp" />
 		<Unit filename="Sources/NumProblem.h" />
+		<Unit filename="Sources/fun.h" />
 		<Unit filename="Sources/main.cpp" />
 		<Extensions>
 			<code_completion />
