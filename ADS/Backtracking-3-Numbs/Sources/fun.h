@@ -83,12 +83,12 @@ T Fun::sumOfVector(const std::vector<T>& cur, const std::vector<int>& positions,
     return sum;
 }
 
-unsigned long long Fun::factorial(unsigned long long n)
+inline unsigned long long Fun::factorial(unsigned long long n)
 {
     return (n>1 ? n * factorial(n-1) : n);
 }
 
-unsigned long long Fun::Combinatorial(unsigned long n1, unsigned long n2) // C n1/n2
+inline unsigned long long Fun::Combinatorial(unsigned long n1, unsigned long n2) // C n1/n2
 {
     if(n1 > n2) return 0;
     return (factorial(n2) / factorial(n2 - n1)) / factorial(n1);

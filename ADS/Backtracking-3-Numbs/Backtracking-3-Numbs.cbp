@@ -37,10 +37,7 @@
 			<Add library="AVLTreeTest" />
 			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/ADS/Backtracking-3-Numbs/Sources/AVLTree/lib" />
 		</Linker>
-		<Unit filename="Sources/NumProblem.cpp">
-			<Option compile="0" />
-			<Option link="0" />
-		</Unit>
+		<Unit filename="Sources/NumProblem.cpp" />
 		<Unit filename="Sources/NumProblem.h" />
 		<Unit filename="Sources/fun.h" />
 		<Unit filename="Sources/main.cpp" />
