@@ -17,6 +17,12 @@ enum SolveStatus
     Solved
 };
 
+enum Tasks
+{
+    Find_All_N_Sets = 0,
+    Find_Sum_Solutions
+};
+
 namespace Defaults
 {
     const char Task = 0;
@@ -30,6 +36,7 @@ private:
     int countOfChecks = 0;
     int showChecks = 0;
 
+    char pTask = Defaults::Task;
     int groupSum = Defaults::GroupSum;
     int groupNumCount = Defaults::GroupCount;
 
@@ -47,10 +54,13 @@ private:
 
 public:
     NumProblemSolver(){ }
+    NumProblemSolver(char _task, int _groupCount = Defaults::GroupCount, int _groupSum = Defaults::GroupSum, std::ostream& outStream = std::cout);
     ~NumProblemSolver(){ }
 
-    int solve(std::initializer_list<int> lst, size_t groupCount = Defaults::GroupCount, char task = Defaults::Task, int _groupSum = Defaults::GroupSum, std::ostream& outStream = std::cout);
-    int solve(const std::vector<int>& vec, size_t groupCount = Defaults::GroupCount, char task = Defaults::Task, int _groupSum = Defaults::GroupSum, std::ostream& outStream = std::cout);
+    void setProperties(char _task = Defaults::Task, int _groupCount = Defaults::GroupCount, int _groupSum = Defaults::GroupSum, std::ostream& outStream = std::cout);
+
+    int solve(std::initializer_list<int> lst);
+    int solve(const std::vector<int>& vec);
 };
 
 #endif // NUMPROBLEM_H_INCLUDED

@@ -19,6 +19,10 @@ public:
     static std::vector<T> getVectorFromPositions(const std::vector<T>& values, const std::vector<int>& poses);
     template<typename T>
     static T sumOfVector(const std::vector<T>& cur, const std::vector<int>& positions = std::vector<int>(), char exclude = 0);
+    template<typename T>
+    static bool vectorsSameElements(const std::vector<T>& ve1, const std::vector<T>& ve2);
+    template<typename T>
+    static std::vector<T> generateVectFromTo(const T val1, const T val2);
 
     static unsigned long long factorial(unsigned long long n);
     static unsigned long long Combinatorial(unsigned long n1, unsigned long n2);
@@ -83,9 +87,30 @@ T Fun::sumOfVector(const std::vector<T>& cur, const std::vector<int>& positions,
     return sum;
 }
 
+template<typename T>
+bool Fun::vectorsSameElements(const std::vector<T>& ve1, const std::vector<T>& ve2)
+{
+    //for(auto ai = ve1.begin())
+    return false;
+}
+
+template<typename T>
+std::vector<T> Fun::generateVectFromTo(const T val1, const T val2)
+{
+    if(val1 > val2)
+        return std::vector<int>();
+
+    std::vector<T> vec;
+    for(T i = val1; i <= val2; i=i+1)
+    {
+        vec.push_back(i);
+    }
+    return vec;
+}
+
 inline unsigned long long Fun::factorial(unsigned long long n)
 {
-    return (n>1 ? n * factorial(n-1) : n);
+    return (n>0 ? n * factorial(n-1) : 1);
 }
 
 inline unsigned long long Fun::Combinatorial(unsigned long n1, unsigned long n2) // C n1/n2

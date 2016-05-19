@@ -40,7 +40,7 @@ void AllPossibleVariants(const std::vector<int>& values, std::vector<int>& buff,
 
 //TestMain(z0r)
 
-void oldTaskStart(std::vector<int> veco, size_t groupCount)
+void oldTaskStart(std::vector<int> veco, size_t groupCount, char task, int sumOgroup)
 {
     std::vector<int> group( groupCount, 0 ); //group of numbers (2)
 
@@ -51,10 +51,10 @@ void oldTaskStart(std::vector<int> veco, size_t groupCount)
     std::cout<<"Veco: ";
     Fun::printVect(veco, 1);
     std::cout<<"\n";
-    std::cout<<"Variant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n";
+    std::cout<<"Variant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n\n";
 
-    NumProblemSolver ns;
-    ns.solve(veco, groupCount); // Backtrack all the variants recursively.
+    NumProblemSolver ns((Tasks)task, groupCount, sumOgroup);
+    ns.solve(veco); // Backtrack all the variants recursively.
 
     std::cout<<"\nVariant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n";
 }
@@ -63,10 +63,11 @@ int main()
 {
     std::cout<<"Hello. Testing.\n\n";
 
-    std::vector<int> veco( {5,4,1,2,3,5} );
+    std::vector<int> veco( {2,4,6,4,4,0} );
     size_t groupCt = 3;
+    int groupSum = 10;
 
-    oldTaskStart(veco, groupCt);
+    oldTaskStart(veco, groupCt, Tasks::Find_Sum_Solutions, groupSum);
 
     return 0;
 }

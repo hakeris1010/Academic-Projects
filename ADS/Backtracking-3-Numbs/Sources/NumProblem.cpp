@@ -13,6 +13,8 @@ Working principle v0.3 :
     We use Postitions in a 'values' buffer as our current group (partition)
     Then check each of them by task functions reject() and accept().
     TODO: Repetitions.
+        Repetitions will be checked by Fun::vectorSameElements().
+        Before posting a solution, program will check all accepted's elems (or sum) with that of original.
 */
 
 #include "NumProblem.h"
@@ -20,30 +22,43 @@ Working principle v0.3 :
 
 namespace Debug
 {
-    const static bool BackTrackAlgo = true;
+    const static bool BackTrackAlgo_Reject         = 0;
+    const static bool BackTrackAlgo_Accept         = true;
+    const static bool BackTrackAlgo_returnCond1    = 0;
+    const static bool BackTrackAlgo_WhileStart     = 0;
+    const static bool BackTrackAlgo_task1_out      = 0;
+    const static bool NumProblemSolver_ReturnCond1 = 0;
+}
+
+NumProblemSolver::NumProblemSolver(char _task, int _groupCount, int _groupSum, std::ostream& outStream)
+{
+    setProperties(_task, _groupCount, _groupSum, outStream);
+}
+
+void NumProblemSolver::setProperties(char _task, int _groupCount, int _groupSum, std::ostream& outStream)
+{
+    pTask = _task;
+    groupNumCount = _groupCount;
+    groupSum = _groupSum;
+    thisStream = &outStream;
 }
 
 //Public's
-int NumProblemSolver::solve(std::initializer_list<int> lst, size_t groupCount, char task, int _groupSum, std::ostream& outStream)
+int NumProblemSolver::solve(std::initializer_list<int> lst)
 {
-    std::vector<int> NuVec(lst);
-    solve(NuVec, groupCount, task, _groupSum, outStream);
+    solve(std::vector<int>( lst ));
 }
 
 //Start this droondzeembark.
-int NumProblemSolver::solve( const std::vector<int>& vec, size_t groupCount, char task, int _groupSum, std::ostream& outStream )
+int NumProblemSolver::solve( const std::vector<int>& vec)
 {
     //Now check if it's worth running a backtrack.
-    if( !vec.size() || vec.size()%groupCount || (Fun::sumOfVector( vec ) != (_groupSum * vec.size() / groupCount)) )
+    if( !vec.size() || vec.size()%groupNumCount || (Fun::sumOfVector( vec ) != (groupSum * vec.size() / groupNumCount)) )
     {
         status = Bad_Properties_Start;
         output();
         return -1;
     }
-    thisStream = &outStream;
-
-    groupNumCount = groupCount;
-    groupSum = _groupSum;
 
     status = Starting_Task;
     showChecks=0;
@@ -53,7 +68,7 @@ int NumProblemSolver::solve( const std::vector<int>& vec, size_t groupCount, cha
     for(auto ai = buff.begin(); ai < buff.end(); ++ai)
         *ai = (int)(ai - buff.begin());
 
-    AllPossibleVariants_bt(vec, buff, 0, 1);
+    AllPossibleVariants_bt(vec, buff, 0, pTask );
 
     if(accepted.size() == vec.size()/groupNumCount)
         status = Solved;
@@ -69,7 +84,7 @@ int NumProblemSolver::solve( const std::vector<int>& vec, size_t groupCount, cha
 bool NumProblemSolver::reject(const std::vector<int>& values, const std::vector<int>& positions, size_t current)
 {
     //if values excluding current are larger than sum, reject.
-    if(Fun::sumOfVector( Fun::getVectorFromPositions(values, positions), std::vector<int>(1, (int)current), 1 ) >= groupSum)
+    if( Fun::sumOfVector( Fun::getVectorFromPositions(values, positions), Fun::generateVectFromTo((int)current, (int)(positions.size())-1) , 1 ) > groupSum )
         return true;
 
     return false;
@@ -90,8 +105,11 @@ char NumProblemSolver::next(const std::vector<int>& values, std::vector<int>& bu
 {
     if( current >= buff.size() ? 1 : ((val>=0 ? val : buff[current]) >= values.size() - (buff.size()-1-current)) )
     {
-        //std::cout<<"First("<<current<<") Returns 1: ";
-        //Fun::printVect( buff, 1);
+        if(Debug::NumProblemSolver_ReturnCond1)
+        {
+            (*thisStream)<<"First("<<current<<") Returns 1: ";
+            Fun::printVect( buff, 1, *thisStream);
+        }
         return 1;
     }
 
@@ -110,24 +128,37 @@ char NumProblemSolver::next(const std::vector<int>& values, std::vector<int>& bu
 // doTask: 0 - just find variants, 1 - do find variants with sum = groupSum
 char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current, char doTask)
 {
-    if(!values.size() || values.size() % buff.size() || current >= buff.size()) //if overflown or noobed.
-    {
-        //std::cout<<"BT("<<current<<") Returns: "; ;
-        //Fun::printVect( buff, 1);
-        return 1;
-    }
     if(doTask == 1) //sum task (batcktrack uzd)
     {
         if( reject(values, buff, current) ) //not Worth Completing
         {
+            if(Debug::BackTrackAlgo_Reject)
+            {
+                (*thisStream)<<"Rejected! ["<<current<<"] pos:( ";
+                Fun::printVect(buff, 3, *thisStream);
+                (*thisStream)<<"), vals: ";
+                Fun::printVect(Fun::getVectorFromPositions(values, buff), 1, *thisStream);
+            }
             return 2;
         }
-        if( accept(values, buff, current) )
+        if( accept(values, buff, current) /*&& current == buff.size()*/ )
         {
-            std::cout<<"["<<showChecks<<"]: Woot! Found accepted: ";
-            Fun::printVect(Fun::getVectorFromPositions(values, buff), 1);
-            showChecks++;
+            if(Debug::BackTrackAlgo_Accept)
+            {
+                (*thisStream)<<"\n["<<showChecks<<"]: Woot! Found accepted: ";
+                Fun::printVect(Fun::getVectorFromPositions(values, buff), 1, *thisStream);
+                showChecks++;
+            }
         }
+    }
+    if(current >= buff.size()) //if overflown or noobed.
+    {
+        if(Debug::BackTrackAlgo_returnCond1)
+        {
+            (*thisStream)<<"BT("<<current<<") Returns: "; ;
+            Fun::printVect( buff, 1, *thisStream );
+        }
+        return 1;
     }
 
     int ret = next(values, buff, current);
@@ -135,19 +166,22 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
 
     while(ret != 1 /*&& countOfChecks < 100*/) // maybe ret != 1
     {
-        //std::cout<<"["<<countOfChecks<<"]> ["<<current<<"]:["<<inLevelCtr<<"] pos: ";
-        //Fun::printVect( buff, 1);
+        if(Debug::BackTrackAlgo_WhileStart)
+        {
+            (*thisStream)<<"["<<countOfChecks<<"]> ["<<current<<"]:["<<inLevelCtr<<"] pos: ";
+            Fun::printVect( buff, 1, *thisStream );
+        }
 
         if(ret==0)
         {
             AllPossibleVariants_bt(values, buff, current+1, doTask);
-            if(current == buff.size()-1 && doTask == 0) //just print endVars
+            if(current == buff.size()-1 && Debug::BackTrackAlgo_task1_out) //just print endVars
             {
-                std::cout<<"["<<showChecks<<"]> ["<<current<<"]:["<<inLevelCtr<<"] pos: ";
-                Fun::printVect( buff, 3 );
-                std::cout<<", vals: ( ";
-                Fun::printVect( Fun::getVectorFromPositions(values, buff), 3 );
-                std::cout<<")\n";
+                (*thisStream)<<"["<<showChecks<<"]> ["<<current<<"]:["<<inLevelCtr<<"] pos: ";
+                Fun::printVect( buff, 3, *thisStream );
+                (*thisStream)<<", vals: ( ";
+                Fun::printVect( Fun::getVectorFromPositions(values, buff), 3, *thisStream );
+                (*thisStream)<<")\n";
                 showChecks++;
             }
         }
