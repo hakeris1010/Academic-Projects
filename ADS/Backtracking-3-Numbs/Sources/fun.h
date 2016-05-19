@@ -12,7 +12,7 @@ public:
     Fun(){ }
     ~Fun(){ }
     template<typename T>
-    static void printVect(const std::vector<T>& ve, char mode=0, std::ostream* thisStream = &(std::cout));
+    static void printVect(const std::vector<T>& ve, char mode=0, std::ostream& thisStream = std::cout);
     template<typename T>
     static bool isInVector(const std::vector<T>& vec, T val);
     template<typename T>
@@ -24,24 +24,22 @@ public:
 //             2 - print each elem at new line, with index, no new line at the end.
 //             3 - print all elems at one line, no index, no new line at the end.
 template<typename T>
-void Fun::printVect(const std::vector<T>& ve, char mode, std::ostream* thisStream)
+void Fun::printVect(const std::vector<T>& ve, char mode, std::ostream& thisStream)
 {
-    if(!thisStream)
-        thisStream = &(std::cout);
     for(auto ai = ve.begin(); ai < ve.end(); ++ai)
     {
-        if(!mode%2) (*thisStream)<<"["<<ai - ve.begin()<<"]: ";
-        (*thisStream)<< *ai <<" ";
-        if(!mode%2) (*thisStream)<<"\n";
+        if(!mode%2) thisStream<<"["<<ai - ve.begin()<<"]: ";
+        thisStream<< *ai <<" ";
+        if(!mode%2) thisStream<<"\n";
     }
     if(mode<2)
-        (*thisStream)<<"\n";
+        thisStream<<"\n";
 }
 
 template<typename T>
 bool Fun::isInVector(const std::vector<T>& vec, T val)
 {
-    for(auto ai=vec.begin(); ai<vec.end(); ++ai)
+    for(auto ai = vec.begin(); ai < vec.end(); ++ai)
     {
         if(val == *ai)
             return true;
