@@ -43,9 +43,12 @@ private:
     SolveStatus status = No_Task;
     std::ostream* thisStream = &(std::cout); //by default, outputting to cout.
 
-    std::vector<int> accepted;
+    std::vector< std::vector<int> > accepted;
 
     void output();
+    void showAllAccepted(char decorationMode = 0, char funPrintMode = 1);
+    bool isVectorInAccepteds(const std::vector<int>& poses, bool isSorted = true);
+
     bool reject(const std::vector<int>& values, const std::vector<int>& positions, size_t current);
     bool accept(const std::vector<int>& values, const std::vector<int>& positions, size_t current);
     char next(const std::vector<int>& values, std::vector<int>& buff, size_t current, int val = -1);

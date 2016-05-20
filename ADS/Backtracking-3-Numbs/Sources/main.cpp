@@ -46,28 +46,34 @@ void oldTaskStart(std::vector<int> veco, size_t groupCount, char task, int sumOg
 
     unsigned long long howMany = Fun::Combinatorial(group.size(), veco.size()); // C group / veco
 
-    std::cout<<"GroupStart: ";
-    Fun::printVect(group, 1);
-    std::cout<<"Veco: ";
+    std::cout<<"Task: "<<(int)task<<"\nGroupCount: "<<groupCount<<"\n";
+    if(task == Tasks::Find_Sum_Solutions)
+        std::cout<<"GroupSum: "<<sumOgroup<<"\n";
+    std::cout<<"\nVector: ";
     Fun::printVect(veco, 1);
-    std::cout<<"\n";
-    std::cout<<"Variant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n\n";
+    std::cout<<"\nVariant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n\n";
 
     NumProblemSolver ns((Tasks)task, groupCount, sumOgroup);
     ns.solve(veco); // Backtrack all the variants recursively.
 
-    std::cout<<"\nVariant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n";
+    if(task == Tasks::Find_All_N_Sets)
+        std::cout<<"\nVariant count (C "<< group.size() <<"/"<< veco.size() <<") = "<< howMany <<"\n";
 }
 
 int main()
 {
-    std::cout<<"Hello. Testing.\n\n";
+    std::cout<<"Finding subsets with sum in a vector.\n\n";
 
-    std::vector<int> veco( {2,4,6,4,4,0} );
+    //std::vector<int> veco( {1,5,6,2,8,2,3,4,4} );
+    std::vector<int> veco( {4,2,1,8,5,0,3,6,1} );
+
     size_t groupCt = 3;
     int groupSum = 10;
-
     oldTaskStart(veco, groupCt, Tasks::Find_Sum_Solutions, groupSum);
+
+    /*Fun::printVect(veco, 1);
+    Fun::quickSortVector(veco);
+    Fun::printVect(veco, 1);*/
 
     return 0;
 }

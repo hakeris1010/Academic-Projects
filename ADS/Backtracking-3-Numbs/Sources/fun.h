@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <utility>
 
 class Fun
 {
@@ -16,13 +17,21 @@ public:
     template<typename T>
     static bool isInVector(const std::vector<T>& vec, T val);
     template<typename T>
+    static bool vectorsHaveCollision(const std::vector<T>& vec1, const std::vector<T>& vec2);
+    template<typename T>
     static std::vector<T> getVectorFromPositions(const std::vector<T>& values, const std::vector<int>& poses);
     template<typename T>
     static T sumOfVector(const std::vector<T>& cur, const std::vector<int>& positions = std::vector<int>(), char exclude = 0);
     template<typename T>
-    static bool vectorsSameElements(const std::vector<T>& ve1, const std::vector<T>& ve2);
+    static bool vectorsSameElements(const std::vector<T>& ve1, const std::vector<T>& ve2, bool sorted);
     template<typename T>
     static std::vector<T> generateVectFromTo(const T val1, const T val2);
+    template<typename T>
+    static void quickSortVector(std::vector<T>& vals, bool ascending = true);
+    template<typename T>
+    static void quickSortRecursive(std::vector<T>& arr, size_t left, size_t right, bool asc);
+    template<typename T>
+    static void concatenateVectors(std::vector<T>& base, const std::vector<T>& add);
 
     static unsigned long long factorial(unsigned long long n);
     static unsigned long long Combinatorial(unsigned long n1, unsigned long n2);
@@ -37,11 +46,11 @@ void Fun::printVect(const std::vector<T>& ve, char mode, std::ostream& thisStrea
 {
     for(auto ai = ve.begin(); ai < ve.end(); ++ai)
     {
-        if(!mode%2) thisStream<<"["<<ai - ve.begin()<<"]: ";
-        thisStream<< *ai <<" ";
-        if(!mode%2) thisStream<<"\n";
+        if(mode==0 || mode==2) thisStream<<"["<<ai - ve.begin()<<"]: ";
+        thisStream<< *ai <<(mode==4 ? ", " : " ");
+        if(mode==0 || mode==2) thisStream<<"\n";
     }
-    if(mode<2)
+    if(mode<2 || mode==5)
         thisStream<<"\n";
 }
 
@@ -51,6 +60,17 @@ bool Fun::isInVector(const std::vector<T>& vec, T val)
     for(auto ai = vec.begin(); ai < vec.end(); ++ai)
     {
         if(val == *ai)
+            return true;
+    }
+    return false;
+}
+
+template<typename T>
+bool Fun::vectorsHaveCollision(const std::vector<T>& vec1, const std::vector<T>& vec2)
+{
+    for(auto ai = vec2.begin(); ai < vec2.end(); ++ai)
+    {
+        if( isInVector(vec1, *ai) )
             return true;
     }
     return false;
@@ -88,10 +108,23 @@ T Fun::sumOfVector(const std::vector<T>& cur, const std::vector<int>& positions,
 }
 
 template<typename T>
-bool Fun::vectorsSameElements(const std::vector<T>& ve1, const std::vector<T>& ve2)
+bool Fun::vectorsSameElements(const std::vector<T>& ve1, const std::vector<T>& ve2, bool sorted)
 {
-    //for(auto ai = ve1.begin())
-    return false;
+    if(ve1.size() != ve2.size())
+        return false;
+    if(sorted) //if sorted, just check if everything's equal on same positions.
+    {
+        for(size_t i = 0; i < ve1.size(); i++)
+        {
+            if(ve1[i] != ve2[i]) //elements not equal on the same position
+                return false;
+        }
+    }
+    else
+    {
+        //TODO - if not sorted.
+    }
+    return true;
 }
 
 template<typename T>
@@ -106,6 +139,55 @@ std::vector<T> Fun::generateVectFromTo(const T val1, const T val2)
         vec.push_back(i);
     }
     return vec;
+}
+
+template<typename T>
+void Fun::concatenateVectors(std::vector<T>& base, const std::vector<T>& add)
+{
+    base.reserve(base.size() + add.size());
+    for(auto ai = add.begin(); ai < add.end(); ++ai)
+    {
+        base.push_back(*ai);
+    }
+}
+
+//Sorting
+
+template<typename T>  // QuickSort.
+void Fun::quickSortRecursive(std::vector<T>& arr, size_t left, size_t right, bool asc)
+{
+    if(arr.size() < 2 || left >= arr.size() || right >= arr.size()) //if size < 2, nothing to sort.
+        return;
+    size_t i = left, j = right;
+    //int tmp;
+
+    T pivot = arr[(left + right) / 2];
+
+    /* partition */
+    while (i <= j && i < arr.size() && j < arr.size())
+    {
+        while (asc ? arr[i] < pivot : arr[i] > pivot)
+            i++;
+        while (asc ? arr[j] > pivot : arr[j] < pivot)
+            j--;
+        if (i <= j)
+        {
+            std::swap(arr[i], arr[j]);
+            i++;
+            j--;
+        }
+    };
+    /* recursion */
+    if (left < j)
+        quickSortRecursive(arr, left, j, asc);
+    if (i < right)
+        quickSortRecursive(arr, i, right, asc);
+}
+
+template<typename T>
+void Fun::quickSortVector(std::vector<T>& vals, bool asc)
+{
+    quickSortRecursive(vals, 0, vals.size()-1, asc);
 }
 
 inline unsigned long long Fun::factorial(unsigned long long n)
