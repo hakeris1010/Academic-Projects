@@ -8,17 +8,33 @@ Working principle v0.1 (BAD):
 Working principle v0.2 :
     We use a Positions vector in a backtrack, that vector is at which positions are elems right now. - Bad, inefficient.
 
-Working principle v0.3 :
+Version v0.3 :
     Recursively enumerate each possible partition with size groupNum from a set 'values', using next() function.
     We use Postitions in a 'values' buffer as our current group (partition)
     Then check each of them by task functions reject() and accept().
 
     TODO 1 : 'accepted' will no longer be vector of vectors, but just a vector, and pushing will be done with
-        Fun::concatenateVectors() function.
+        Fun::concatenateVectors() function. (Deprecated! (Maybe))
+
+Version v0.4
     TODO 2: Repetitions. 3 possible solutions:
         1. Check in reject() (might cause unneeded returns)
         2. Check in accept() (probably inefficient CPU-wise)
         3. Check after all the work. (is probably the best, but RAM-wise not the best, coz 'accepted' could grow quite large.).
+
+        Final solution no.1: (Will check)
+         a) Before adding to accepted in bt() (on if(accepted)) check if equal vector isn't already in accepteds.
+         b) After all the work check all possible pairs Backtrack'ily (also!), and leave only those pairs which all positions are different.
+        Final solution no.1: (Current)
+         (From 1.) Check in reject()
+
+Version v0.5 (Changed task!)
+    Task - find all subsets with THE SAME SUM in them.
+
+    Principle - get a subset, remember it's sum in class-local variable, and run recursion with next one.
+    Functions:
+        Reject() - will check if sum of before current != gotLast, and also maybe what it does now.
+        Accept() - if sum == gotLast.
 */
 
 #include "NumProblem.h"
@@ -32,6 +48,7 @@ namespace Debug
     const static bool BackTrackAlgo_WhileStart     = 0;
     const static bool BackTrackAlgo_task1_out      = 0;
     const static bool NumProblemSolver_ReturnCond1 = 0;
+    const static bool RemoveSameAccepteds_erase = 1;
 }
 
 NumProblemSolver::NumProblemSolver(char _task, int _groupCount, int _groupSum, std::ostream& outStream)
@@ -88,7 +105,11 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
     //else
       //  status = No_Solution;
 
-    output();
+    output(vec); //before
+
+    /*removeSameAccepteds(1);
+
+    output(vec); //after*/
 
     return 0;
 }
@@ -104,6 +125,56 @@ bool NumProblemSolver::isVectorInAccepteds(const std::vector<int>& poses, bool i
     return false;
 }
 
+void NumProblemSolver::removeSameAccepteds(char mode) //mode: 0 - values, 1 - poses
+{
+    for(size_t i = 0; i < accepted.size(); i++)
+    {
+        for(auto ai = accepted.begin(); ai < accepted.end(); ++ai)
+        {
+            bool b = false;
+            if( (size_t)(ai - accepted.begin()) != i ) //if not current
+            {
+                //if(mode==0) //values
+                    b = ( Fun::vectorsSameElements( accepted[i], *ai, true ) ) || ( Fun::vectorsHaveCollision( accepted[i], *ai ) );
+                //else // poses
+                   // b = ( Fun::vectorsHaveCollision( accepted[i], *ai ) );
+            }
+            if( b )
+            {
+                if(Debug::RemoveSameAccepteds_erase)
+                {
+                    (*thisStream)<<"Removing: acc["<<i<<"]: ( ";
+                    Fun::printVect(accepted[i], 3);
+                    (*thisStream)<<"), *ai{"<< ai - accepted.begin() <<"}: ( ";
+                    Fun::printVect(*ai, 3);
+                    (*thisStream)<<")\n";
+                }
+                accepted.erase(ai);
+                if(i>0) i--;
+                break;
+            }
+        }
+    }
+}
+
+bool NumProblemSolver::hasCollisionWithSomeAccepted(std::vector<int> buff, size_t where, bool before)
+{
+    if(before && where < buff.size())
+    {
+        buff.erase(buff.begin()+where, buff.end());
+    }
+    if(!before && where <= buff.size())
+    {
+        buff.erase(buff.begin(), buff.begin()+where);
+    }
+    for(auto ai = accepted.begin(); ai < accepted.end(); ++ai)
+    {
+        if(Fun::vectorsHaveCollision( *ai, buff ))
+            return true;
+    }
+    return false;
+}
+
 //BackTrack Task's
 bool NumProblemSolver::reject(const std::vector<int>& values, const std::vector<int>& positions, size_t current)
 {
@@ -112,7 +183,8 @@ bool NumProblemSolver::reject(const std::vector<int>& values, const std::vector<
     if( Fun::sumOfVector( Fun::getVectorFromPositions(values, positions), Fun::generateVectFromTo((int)current, (int)(positions.size())-1) , 1 ) > groupSum )
         return true;
     //Also reject if in accepted's there is already a position from 'positions'. - TODO
-    //if( Fun::vectorsHaveCollision(positions, accepted) )
+    if( hasCollisionWithSomeAccepted(positions, current, 1) ) // Maybe bad.
+        return true;
 
     return false;
 }
@@ -172,17 +244,21 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
         if( accept(values, buff, current) ) //good!
         {
             //TODO: Remove these unoptimized checks and brecks.
-            std::vector<int> gotFromPoso = Fun::getVectorFromPositions(values, buff);
-            Fun::quickSortVector( gotFromPoso ); //sort it, and then check.
+
+            /*std::vector<int> gotFromPoso = Fun::getVectorFromPositions(values, buff);
+            Fun::quickSortVector( gotFromPoso ); // Sort before pushing (!!!)
 
             if(!isVectorInAccepteds( gotFromPoso ))
-            {
-                accepted.push_back( gotFromPoso );
-            }
+                accepted.push_back( gotFromPoso );*/
+
+            Fun::quickSortVector(buff);  // Sort before pushing (!!!)
+            if(!isVectorInAccepteds(buff, 1))
+                accepted.push_back(buff); //maybe unneeded
+
             if(Debug::BackTrackAlgo_Accept)
             {
                 (*thisStream)<<"\n["<<showChecks<<"]: Woot! Found accepted: ";
-                Fun::printVect(gotFromPoso, 3, *thisStream);
+                Fun::printVect( Fun::getVectorFromPositions(values, buff) , 3, *thisStream); //gotFromPoso
                 (*thisStream)<<", pos: ";
                 Fun::printVect(buff, 1, *thisStream);
                 showChecks++;
@@ -236,18 +312,19 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
 
 //DecorationMode: 0 - just print, 1 - with brackets.
 //funPrintMode - mode passed to Fun::printVect().
-void NumProblemSolver::showAllAccepted(char decorationMode, char funPrintMode)
+void NumProblemSolver::showAllAccepted(char decorationMode, char funPrintMode, const std::vector<int>& values)
 {
+    bool vec = (values.size() > 0);
     (*thisStream)<<"\n";
     for(size_t i = 0; i < accepted.size(); i++)
     {
         if(decorationMode==1) (*thisStream)<<"{ ";
-        Fun::printVect(accepted[i], funPrintMode, *thisStream);
+        Fun::printVect( (vec ? Fun::getVectorFromPositions(values, accepted[i]) : accepted[i] ), funPrintMode, *thisStream);
         if(decorationMode==1) (*thisStream)<<"}\n";
     }
 }
 
-void NumProblemSolver::output()
+void NumProblemSolver::output(const std::vector<int>& values)
 {
     if(status == SolveStatus::No_Solution)
         (*thisStream)<<"\nNo solution found.\n";
@@ -258,7 +335,7 @@ void NumProblemSolver::output()
     else if(status == SolveStatus::Solved)
     {
         (*thisStream)<<"\nSolution found! Subsets:\n";
-        showAllAccepted(1, 3);
+        showAllAccepted(1, 3, values);
     }
     else if(status == SolveStatus::Starting_Task)
         (*thisStream)<<"\nStarting solving.\n";

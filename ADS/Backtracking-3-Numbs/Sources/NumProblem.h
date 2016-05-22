@@ -44,10 +44,14 @@ private:
     std::ostream* thisStream = &(std::cout); //by default, outputting to cout.
 
     std::vector< std::vector<int> > accepted;
+    //std::vector< int > accepted_v2;
 
-    void output();
-    void showAllAccepted(char decorationMode = 0, char funPrintMode = 1);
+    void output(const std::vector<int>& values = std::vector<int>());
+    void showAllAccepted(char decorationMode = 0, char funPrintMode = 1, const std::vector<int>& values = std::vector<int>());
     bool isVectorInAccepteds(const std::vector<int>& poses, bool isSorted = true);
+    bool hasCollisionWithSomeAccepted(std::vector<int> buff, size_t where, bool before = true);
+
+    void removeSameAccepteds(char mode);
 
     bool reject(const std::vector<int>& values, const std::vector<int>& positions, size_t current);
     bool accept(const std::vector<int>& values, const std::vector<int>& positions, size_t current);
