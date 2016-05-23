@@ -42,8 +42,10 @@ private:
     SolveStatus status = No_Task;
     std::ostream* thisStream = &(std::cout); //by default, outputting to cout.
 
+    std::vector< bool > used;
+
     std::vector< std::vector<int> > accepted;
-    //std::vector< int > accepted_v2;
+    std::vector< int > accepted_stack;
 
     void output(const std::vector<int>& values = std::vector<int>());
     void showAllAccepted(char decorationMode = 0, char funPrintMode = 1, const std::vector<int>& values = std::vector<int>());
@@ -56,8 +58,9 @@ private:
     bool accept(const std::vector<int>& values, const std::vector<int>& positions, size_t current);
     char next(const std::vector<int>& values, std::vector<int>& buff, size_t current, int val = -1);
 
-    char AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current, char doTask = 0); //our main recursion
-    char startCheckingAllSums(const std::vector<int>& values, size_t sumMin, size_t sumMax);
+    char AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current, char doTask = 0); //constant sum recursion
+    char variableSumBackTrack(const std::vector<int>& values, std::vector<int>& buff, size_t current); //variable sum recursion
+    char startCheckingAllSums(const std::vector<int>& values, int sumMin, int sumMax);
 
 public:
     NumProblemSolver(){ }

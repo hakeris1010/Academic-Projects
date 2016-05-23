@@ -32,6 +32,8 @@ public:
     static void quickSortRecursive(std::vector<T>& arr, size_t left, size_t right, bool asc);
     template<typename T>
     static void concatenateVectors(std::vector<T>& base, const std::vector<T>& add);
+    template<typename T>
+    static T sumOfMaximum(std::vector<T> vec, size_t hm);
 
     static unsigned long long factorial(unsigned long long n);
     static unsigned long long Combinatorial(unsigned long n1, unsigned long n2);
@@ -103,6 +105,24 @@ T Fun::sumOfVector(const std::vector<T>& cur, const std::vector<int>& positions,
         }
         else
             sum += *ai;
+    }
+    return sum;
+}
+
+template<typename T>
+T Fun::sumOfMaximum(std::vector<T> vec, size_t hm)
+{
+    T sum = 0;
+    if(hm >= vec.size())
+        return sumOfVector(vec);
+    for(size_t i = 0; i < hm; i++)
+    {
+        for( auto ai = vec.begin()+i+1; ai < vec.end(); ++ai )
+        {
+            if(*ai > vec[i])
+                std::swap(*ai, vec[i]);
+        }
+        sum += vec[i];
     }
     return sum;
 }

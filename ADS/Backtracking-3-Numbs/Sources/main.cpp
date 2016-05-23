@@ -64,12 +64,14 @@ int main()
 {
     std::cout<<"Finding subsets with sum in a vector.\n\n";
 
-    //std::vector<int> veco( {1,5,6,2,8,2,3,4,4} );
-    std::vector<int> veco( {5,1,2,4,3,8,7,0,0} );
+    std::vector<int> veco( {1,3,8,2,6,2,5,4,5} );
+    //std::vector<int> veco( {5,1,2,4,3,8,7,0,0} );
+
+    Fun::quickSortVector(veco);
 
     size_t groupCt = 3;
-    int groupSum = 10;
-    oldTaskStart(veco, groupCt, Tasks::Find_Sum_Solutions, groupSum);
+    int groupSum = 1;
+    oldTaskStart(veco, groupCt, Tasks::Find_Same_Sum_Subsets, groupSum);
 
     /*Fun::printVect(veco, 1);
     Fun::quickSortVector(veco);

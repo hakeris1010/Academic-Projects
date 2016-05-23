@@ -45,7 +45,7 @@ namespace Debug
     const static bool BackTrackAlgo_Reject         = 0;
     const static bool BackTrackAlgo_Accept         = 0;
     const static bool BackTrackAlgo_returnCond1    = 0;
-    const static bool BackTrackAlgo_WhileStart     = 1;
+    const static bool BackTrackAlgo_WhileStart     = 0;
     const static bool BackTrackAlgo_task1_out      = 0;
     const static bool NumProblemSolver_ReturnCond1 = 0;
     const static bool RemoveSameAccepteds_erase    = 0;
@@ -75,17 +75,21 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
 {
     //Now check if it's worth running a backtrack.
     //These bools are starting checks.
-    bool a=0, b=0, c=0;
+    bool a=0, b=0, c=0, d=0;
+
     a = (!vec.size());
     b = (vec.size()%groupNumCount);
     if(pTask == Tasks::Find_Sum_Solutions)
         c = (Fun::sumOfVector( vec ) != (groupSum * vec.size() / groupNumCount));
+    if(pTask != Tasks::Find_All_N_Sets)
+        d = ( Fun::sumOfVector( vec ) % groupNumCount );
 
-    if( a || b || c ) // The starting data is not worth checking.
+    if( a || b || c || d ) // The starting data is not worth checking.
     {
         if(a) (*thisStream)<<"!vec.size()\n";
         if(b) (*thisStream)<<"vec.size()%groupNumCount\n";
         if(c) (*thisStream)<<"Fun::sumOfVector( vec ) != (groupSum * vec.size() / groupNumCount)\n";
+        if(d) (*thisStream)<<"Fun::sumOfVector( vec ) % groupNumCount\n";
 
         status = Bad_Properties_Start;
         output();
@@ -100,21 +104,27 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
     for(auto ai = buff.begin(); ai < buff.end(); ++ai)
         *ai = (int)(ai - buff.begin());
 
+    used = std::vector<bool>(vec.size(), 0); //create a vector in which we'll store which values are used.
+
     if(pTask == Tasks::Find_Same_Sum_Subsets)
     {
-         //determine start sum
-         size_t sumMin = Fun::sumOfVector(vec) / groupNumCount;
-         size_t sumMax; // = Fun::SumOfMaximum(vec, groupNumCount);
+         /*//determine start sum
+         int sumMin = Fun::sumOfVector(vec) / groupNumCount;
+         int sumMax = Fun::sumOfMaximum(vec, groupNumCount);
 
-         startCheckingAllSums(vec, sumMin, sumMax);
+         startCheckingAllSums(vec, sumMin, sumMax);*/
+
+         groupSum = Fun::sumOfVector( vec ) / groupNumCount;
+
+         (*thisStream)<<"Determined sum: "<<groupSum<<"\n";
     }
-    else
-        AllPossibleVariants_bt(vec, buff, 0, pTask);
 
-    //if(accepted.size() == vec.size()/groupNumCount) // && sum(vec) == sum(merge(accepted)) // || sameElements(vec, merge(accepted)
+    AllPossibleVariants_bt(vec, buff, 0, pTask);
+
+    if(accepted.size() == vec.size()/groupNumCount) // && sum(vec) == sum(merge(accepted)) // || sameElements(vec, merge(accepted)
         status = Solved;
-    //else
-      //  status = No_Solution;
+    else
+        status = No_Solution;
 
     output(vec); //before
 
@@ -125,11 +135,9 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
     return 0;
 }
 
-char NumProblemSolver::startCheckingAllSums(const std::vector<int>& values, size_t sumMin, size_t sumMax)
+char NumProblemSolver::startCheckingAllSums(const std::vector<int>& values, int sumMin, int sumMax)
 {
-
-
-//    AllPossibleVariants_bt(values, buff, 0, pTask );
+    //AllPossibleVariants_bt(values, buff, 0, pTask );
     return 0;
 }
 
@@ -211,6 +219,7 @@ bool NumProblemSolver::reject(const std::vector<int>& values, const std::vector<
 bool NumProblemSolver::accept(const std::vector<int>& values, const std::vector<int>& positions, size_t current)
 {
     //Accept, if sum of current vec is equal to the groupSum and remaining vector's sum is equal to GroupSum*something.
+    //std::vector<int> exclusions = Fun::concatenateVectors(positions, Fun::getPositionsFromMarks(used));
     if(Fun::sumOfVector(values, positions, 0) == groupSum &&
        Fun::sumOfVector(values, positions, 1) == ((values.size() - positions.size())/positions.size())*groupSum )
         return true;
@@ -238,6 +247,7 @@ char NumProblemSolver::next(const std::vector<int>& values, std::vector<int>& bu
     for(auto ai = buff.begin()+current+1; ai < buff.end(); ++ai)
     {
         //if(*(ai-1) + 1 < values.size()) //can't happen coz we checked.
+        //if(!used[ (*(ai-1)) + 1 ])
         *ai = (*(ai-1)) + 1;
     }
 
@@ -247,7 +257,7 @@ char NumProblemSolver::next(const std::vector<int>& values, std::vector<int>& bu
 // doTask: 0 - just find variants, 1 - do find variants with sum = groupSum
 char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current, char doTask)
 {
-    if(doTask == 1) //sum task (batcktrack uzd)
+    if(doTask != Tasks::Find_All_N_Sets) //sum task (batcktrack uzd)
     {
         if( reject(values, buff, current) ) //not Worth Completing. End this branch.
         {
@@ -262,14 +272,6 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
         }
         if( accept(values, buff, current) ) //good!
         {
-            //TODO: Remove these unoptimized checks and brecks.
-
-            /*std::vector<int> gotFromPoso = Fun::getVectorFromPositions(values, buff);
-            Fun::quickSortVector( gotFromPoso ); // Sort before pushing (!!!)
-
-            if(!isVectorInAccepteds( gotFromPoso ))
-                accepted.push_back( gotFromPoso );*/
-
             Fun::quickSortVector(buff);  // Sort before pushing (!!!)
             if(!isVectorInAccepteds(buff, 1))
                 accepted.push_back(buff); //maybe unneeded
@@ -328,6 +330,9 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
     }
     return 0;
 }
+
+//-----------------------------------------------------------------------//
+//-----------------------------------------------------------------------//
 
 //DecorationMode: 0 - just print, 1 - with brackets.
 //funPrintMode - mode passed to Fun::printVect().
