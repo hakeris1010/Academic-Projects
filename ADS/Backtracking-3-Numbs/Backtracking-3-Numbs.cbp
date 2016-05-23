@@ -39,6 +39,7 @@
 		<Compiler>
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
+			<Add directory="C:/Users/KestutisAdmin/Documents/CodeBlocks Projects/Academic-Projects/ADS/Backtracking-3-Numbs/Sources/Marius Barkauaskas INFO 2.1 Stekas" />
 		</Compiler>
 		<Unit filename="Sources/NumProblem.cpp" />
 		<Unit filename="Sources/NumProblem.h" />

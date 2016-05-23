@@ -34,6 +34,7 @@ class NumProblemSolver
 private:
     int countOfChecks = 0;
     int showChecks = 0;
+    bool useStack = 0;
 
     char pTask = Defaults::Task;
     int groupSum = Defaults::GroupSum;
@@ -42,14 +43,11 @@ private:
     SolveStatus status = No_Task;
     std::ostream* thisStream = &(std::cout); //by default, outputting to cout.
 
-    std::vector< bool > used;
-
     std::vector< std::vector<int> > accepted;
-    std::vector< int > accepted_stack;
 
     void output(const std::vector<int>& values = std::vector<int>());
     void showAllAccepted(char decorationMode = 0, char funPrintMode = 1, const std::vector<int>& values = std::vector<int>());
-    bool isVectorInAccepteds(const std::vector<int>& poses, bool isSorted = true);
+    bool isVectorInAccepteds(const std::vector<int>& poses, bool haveCollision, bool isSorted = true);
     bool hasCollisionWithSomeAccepted(std::vector<int> buff, size_t where, bool before = true);
 
     void removeSameAccepteds(char mode);

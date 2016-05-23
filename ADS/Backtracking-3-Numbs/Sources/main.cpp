@@ -2,6 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <cstdlib>
+#include <ctime>
 #include <windows.h>
 #include "NumProblem.h"
 #include "fun.h"
@@ -63,11 +65,20 @@ void oldTaskStart(std::vector<int> veco, size_t groupCount, char task, int sumOg
 int main()
 {
     std::cout<<"Finding subsets with sum in a vector.\n\n";
+    srand(time(0));
 
-    std::vector<int> veco( {1,3,8,2,6,2,5,4,5} );
-    //std::vector<int> veco( {5,1,2,4,3,8,7,0,0} );
+    int maxRander = 12;
+    size_t randElCount = 0;
+    std::vector<int> veco;
 
-    Fun::quickSortVector(veco);
+    if(!randElCount)
+        veco = std::vector<int>( {1,8,3,2,6,2,5,4,5,12,0,0,4,4,4,7,3,2,8,10,2,2,1,1,9,6,6,3,0,0,
+                                1,8,3,2,6,2,5,4,5,12,0,0,4,4,4,7,3,2,8,10,2,2,1,1,9,6,6,3,0,0} );
+
+    for(int i=0; i<randElCount; i++)
+    {
+        veco.push_back( rand()%maxRander );
+    }
 
     size_t groupCt = 3;
     int groupSum = 1;

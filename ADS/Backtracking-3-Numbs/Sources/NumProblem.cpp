@@ -104,19 +104,12 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
     for(auto ai = buff.begin(); ai < buff.end(); ++ai)
         *ai = (int)(ai - buff.begin());
 
-    used = std::vector<bool>(vec.size(), 0); //create a vector in which we'll store which values are used.
-
     if(pTask == Tasks::Find_Same_Sum_Subsets)
     {
-         /*//determine start sum
-         int sumMin = Fun::sumOfVector(vec) / groupNumCount;
-         int sumMax = Fun::sumOfMaximum(vec, groupNumCount);
+        (*thisStream)<<Fun::sumOfVector( vec )<<" / "<<(vec.size() / groupNumCount)<<" = \n";
+        groupSum = Fun::sumOfVector( vec ) / (vec.size() / groupNumCount);
 
-         startCheckingAllSums(vec, sumMin, sumMax);*/
-
-         groupSum = Fun::sumOfVector( vec ) / groupNumCount;
-
-         (*thisStream)<<"Determined sum: "<<groupSum<<"\n";
+        (*thisStream)<<"Determined sum: "<<groupSum<<"\n";
     }
 
     AllPossibleVariants_bt(vec, buff, 0, pTask);
@@ -126,62 +119,30 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
     else
         status = No_Solution;
 
-    output(vec); //before
+    output(vec);
+    accepted.clear();
 
-    /*removeSameAccepteds(1);
-
-    output(vec); //after*/
-
-    return 0;
-}
-
-char NumProblemSolver::startCheckingAllSums(const std::vector<int>& values, int sumMin, int sumMax)
-{
-    //AllPossibleVariants_bt(values, buff, 0, pTask );
     return 0;
 }
 
 //find out if vector is already there
-bool NumProblemSolver::isVectorInAccepteds(const std::vector<int>& poses, bool isSorted)
+bool NumProblemSolver::isVectorInAccepteds(const std::vector<int>& poses, bool haveCollision, bool isSorted)
 {
     for(size_t i = 0; i < accepted.size(); i++)
     {
-        if(Fun::vectorsSameElements( accepted[i], poses, isSorted ))
-            return true;
-    }
-    return false;
-}
-
-void NumProblemSolver::removeSameAccepteds(char mode) //mode: 0 - values, 1 - poses
-{
-    for(size_t i = 0; i < accepted.size(); i++)
-    {
-        for(auto ai = accepted.begin(); ai < accepted.end(); ++ai)
+        if(!haveCollision)
         {
-            bool b = false;
-            if( (size_t)(ai - accepted.begin()) != i ) //if not current
-            {
-                //if(mode==0) //values
-                    b = ( Fun::vectorsSameElements( accepted[i], *ai, true ) ) || ( Fun::vectorsHaveCollision( accepted[i], *ai ) );
-                //else // poses
-                   // b = ( Fun::vectorsHaveCollision( accepted[i], *ai ) );
-            }
-            if( b )
-            {
-                if(Debug::RemoveSameAccepteds_erase)
-                {
-                    (*thisStream)<<"Removing: acc["<<i<<"]: ( ";
-                    Fun::printVect(accepted[i], 3);
-                    (*thisStream)<<"), *ai{"<< ai - accepted.begin() <<"}: ( ";
-                    Fun::printVect(*ai, 3);
-                    (*thisStream)<<")\n";
-                }
-                accepted.erase(ai);
-                if(i>0) i--;
-                break;
-            }
+            if(Fun::vectorsSameElements( accepted[i], poses, isSorted ))
+                return true;
+        }
+        else
+        {
+            if(Fun::vectorsHaveCollision(accepted[i], poses))
+                return true;
         }
     }
+
+    return false;
 }
 
 bool NumProblemSolver::hasCollisionWithSomeAccepted(std::vector<int> buff, size_t where, bool before)
@@ -194,12 +155,8 @@ bool NumProblemSolver::hasCollisionWithSomeAccepted(std::vector<int> buff, size_
     {
         buff.erase(buff.begin(), buff.begin()+where);
     }
-    for(auto ai = accepted.begin(); ai < accepted.end(); ++ai)
-    {
-        if(Fun::vectorsHaveCollision( *ai, buff ))
-            return true;
-    }
-    return false;
+
+    return isVectorInAccepteds(buff, true);
 }
 
 //BackTrack Task's
@@ -257,6 +214,8 @@ char NumProblemSolver::next(const std::vector<int>& values, std::vector<int>& bu
 // doTask: 0 - just find variants, 1 - do find variants with sum = groupSum
 char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current, char doTask)
 {
+    countOfChecks++;
+
     if(doTask != Tasks::Find_All_N_Sets) //sum task (batcktrack uzd)
     {
         if( reject(values, buff, current) ) //not Worth Completing. End this branch.
@@ -274,7 +233,9 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
         {
             Fun::quickSortVector(buff);  // Sort before pushing (!!!)
             if(!isVectorInAccepteds(buff, 1))
-                accepted.push_back(buff); //maybe unneeded
+            {
+                accepted.push_back(buff);
+            }
 
             if(Debug::BackTrackAlgo_Accept)
             {
@@ -321,8 +282,6 @@ char NumProblemSolver::AllPossibleVariants_bt(const std::vector<int>& values, st
                 showChecks++;
             }
         }
-
-        countOfChecks++;
         inLevelCtr++;
 
         ret = next(values, buff, current, buff[current]+1);
@@ -363,6 +322,8 @@ void NumProblemSolver::output(const std::vector<int>& values)
     }
     else if(status == SolveStatus::Starting_Task)
         (*thisStream)<<"\nStarting solving.\n";
+
+    (*thisStream)<<"\nCalls to bt(): "<<countOfChecks<<"\n";
 }
 
 //end.
