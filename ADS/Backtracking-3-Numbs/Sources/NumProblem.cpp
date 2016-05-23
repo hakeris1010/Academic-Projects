@@ -45,10 +45,10 @@ namespace Debug
     const static bool BackTrackAlgo_Reject         = 0;
     const static bool BackTrackAlgo_Accept         = 0;
     const static bool BackTrackAlgo_returnCond1    = 0;
-    const static bool BackTrackAlgo_WhileStart     = 0;
+    const static bool BackTrackAlgo_WhileStart     = 1;
     const static bool BackTrackAlgo_task1_out      = 0;
     const static bool NumProblemSolver_ReturnCond1 = 0;
-    const static bool RemoveSameAccepteds_erase = 1;
+    const static bool RemoveSameAccepteds_erase    = 0;
 }
 
 NumProblemSolver::NumProblemSolver(char _task, int _groupCount, int _groupSum, std::ostream& outStream)
@@ -75,9 +75,11 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
 {
     //Now check if it's worth running a backtrack.
     //These bools are starting checks.
-    bool a = (!vec.size());
-    bool b = (vec.size()%groupNumCount);
-    bool c = (Fun::sumOfVector( vec ) != (groupSum * vec.size() / groupNumCount));
+    bool a=0, b=0, c=0;
+    a = (!vec.size());
+    b = (vec.size()%groupNumCount);
+    if(pTask == Tasks::Find_Sum_Solutions)
+        c = (Fun::sumOfVector( vec ) != (groupSum * vec.size() / groupNumCount));
 
     if( a || b || c ) // The starting data is not worth checking.
     {
@@ -98,7 +100,16 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
     for(auto ai = buff.begin(); ai < buff.end(); ++ai)
         *ai = (int)(ai - buff.begin());
 
-    AllPossibleVariants_bt(vec, buff, 0, pTask );
+    if(pTask == Tasks::Find_Same_Sum_Subsets)
+    {
+         //determine start sum
+         size_t sumMin = Fun::sumOfVector(vec) / groupNumCount;
+         size_t sumMax; // = Fun::SumOfMaximum(vec, groupNumCount);
+
+         startCheckingAllSums(vec, sumMin, sumMax);
+    }
+    else
+        AllPossibleVariants_bt(vec, buff, 0, pTask);
 
     //if(accepted.size() == vec.size()/groupNumCount) // && sum(vec) == sum(merge(accepted)) // || sameElements(vec, merge(accepted)
         status = Solved;
@@ -111,6 +122,14 @@ int NumProblemSolver::solve( const std::vector<int>& vec)
 
     output(vec); //after*/
 
+    return 0;
+}
+
+char NumProblemSolver::startCheckingAllSums(const std::vector<int>& values, size_t sumMin, size_t sumMax)
+{
+
+
+//    AllPossibleVariants_bt(values, buff, 0, pTask );
     return 0;
 }
 

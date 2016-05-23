@@ -5,8 +5,6 @@
 #include <vector>
 #include <ostream>
 #include <iostream>
-#include <avltree.h>
-#include <treenode.h>
 
 enum SolveStatus
 {
@@ -20,7 +18,8 @@ enum SolveStatus
 enum Tasks
 {
     Find_All_N_Sets = 0,
-    Find_Sum_Solutions
+    Find_Sum_Solutions,
+    Find_Same_Sum_Subsets
 };
 
 namespace Defaults
@@ -58,6 +57,7 @@ private:
     char next(const std::vector<int>& values, std::vector<int>& buff, size_t current, int val = -1);
 
     char AllPossibleVariants_bt(const std::vector<int>& values, std::vector<int>& buff, size_t current, char doTask = 0); //our main recursion
+    char startCheckingAllSums(const std::vector<int>& values, size_t sumMin, size_t sumMax);
 
 public:
     NumProblemSolver(){ }

@@ -65,7 +65,7 @@ int main()
     std::cout<<"Finding subsets with sum in a vector.\n\n";
 
     //std::vector<int> veco( {1,5,6,2,8,2,3,4,4} );
-    std::vector<int> veco( {1,5,6,2,8,2,3,4,4} );
+    std::vector<int> veco( {5,1,2,4,3,8,7,0,0} );
 
     size_t groupCt = 3;
     int groupSum = 10;
