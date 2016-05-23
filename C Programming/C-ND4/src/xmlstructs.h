@@ -3,37 +3,40 @@
 
 //XML-Type
 
-#define XML_TAGTYPE_INITIALIZE "init"  // the <?...?> tag
-#define XML_TAGTYPE_BEGIN      "beg"   // <...> tag
-#define XML_TAGTYPE_END        "end"   // </...> tag
-#define XML_TAGTYPE_SELFCLOSE  "close" // <... /> tag, or specific, predefined (like <br>)
+#define XML_TAGTYPE_UNDEFINED  0
+#define XML_TAGTYPE_INITIALIZE 1  // the <?...?> tag, or <!...(!)> tag
+#define XML_TAGTYPE_BEGIN      2   // <...> tag
+#define XML_TAGTYPE_END        3   // </...> tag
+#define XML_TAGTYPE_SELFCLOSE  4 // <... /> tag, or specific, predefined (like <br>)
 
-struct XMLAttrib
+typedef struct XMLAttrib
 {
     char* name;
     char* value;
-};
+} XMLAttrib;
 
-struct XMLTag
+typedef struct XMLTag
 {
     char* tagName;
-    char* tagType; //can be int
+    char tagType; //can be char*
     struct XMLAttrib* attribs;
-    int attribCount;
-};
+    size_t attribCount;
+} XMLTag;
 
-struct XMLElement
+typedef struct XMLElement
 {
     struct XMLTag mainTag;
-    //char* tagString;         //in tagObject
-    //std::vector<XMLAttrib> attribs;
-    char* text;
+    char* data;
     struct XMLElement* innerElements;
-    int innerElemCount;
-};
+    size_t innerElemCount;
+} XMLElement;
 
-void clearXMLAttrib(struct XMLAttrib* att);
-void clearXMLTag(struct XMLTag* tag);
-void clearXMLElement(struct XMLElement* elem);
+char XML_initAttrib(struct XMLAttrib* att);
+char XML_initTag(struct XMLTag* tag);
+char XML_initElement(struct XMLElement* elem);
+
+void XML_clearAttrib(struct XMLAttrib* att);
+void XML_clearTag(struct XMLTag* tag);
+void XML_clearElement(struct XMLElement* elem);
 
 #endif // XMLSTRUCTS_H_INCLUDED

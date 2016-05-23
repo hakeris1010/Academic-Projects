@@ -32,22 +32,31 @@
 			<Add option="-Wall" />
 			<Add option="-std=c99" />
 			<Add directory="C:/Users/KestutisAdmin/Documents/CodeBlocks Projects/Academic-Projects/C Programming/C-ND4/src" />
+			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/C Programming/C-ND4/src" />
 		</Compiler>
-		<Unit filename="main.c">
+		<Unit filename="src/htools/hfun.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/htools/hfun.h" />
+		<Unit filename="src/htools/hstring.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/htools/hstring.h" />
+		<Unit filename="src/htools/logger.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/htools/logger.h" />
 		<Unit filename="src/interface.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/interface.h" />
-		<Unit filename="src/tools/logger.c">
+		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/tools/logger.h" />
-		<Unit filename="src/xmlreader.c">
+		<Unit filename="src/xmlparser.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/xmlreader.h" />
+		<Unit filename="src/xmlparser.h" />
 		<Unit filename="src/xmlstructs.c">
 			<Option compilerVar="CC" />
 		</Unit>

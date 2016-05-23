@@ -1,52 +1,92 @@
 #include <stdlib.h>
 #include "xmlstructs.h"
 
-void clearXMLAttrib(struct XMLAttrib* att)
+char XML_initAttrib(struct XMLAttrib* att)
+{
+    if(!att) return 1;
+    att->name = NULL;
+    att->value = NULL;
+    return 0;
+}
+
+char XML_initTag(struct XMLTag* tag)
+{
+    if(!tag) return 1;
+    tag->attribCount = 0;
+    tag->attribs = NULL;
+    tag->tagName = NULL;
+    tag->tagType = XML_TAGTYPE_UNDEFINED;
+    return 0;
+}
+
+char XML_initElement(struct XMLElement* elem)
+{
+    if(!elem) return 1;
+    elem->data = NULL;
+    elem->innerElemCount = 0;
+    elem->innerElements = NULL;
+    XML_initTag( &(elem->mainTag) );
+    return 0;
+}
+
+void XML_clearAttrib(struct XMLAttrib* att)
 {
     if(!att) return;
 
-    free(att->name);
+    if(att->name)
+        free(att->name);
     att->name = NULL;
 
-    free(att->value);
+    if(att->value)
+        free(att->value);
     att->value = NULL;
 }
 
-void clearXMLTag(struct XMLTag* tag)
+void XML_clearTag(struct XMLTag* tag)
 {
     if(!tag) return;
-    for(int i=tag->attribCount-1; i>=0; i--)
+
+    if(tag->attribs)
     {
-        clearXMLAttrib(tag->attribs + i);
+        for(size_t i = 0; i < tag->attribCount; i++)
+        {
+            XML_clearAttrib(tag->attribs + i);
+        }
+        free(tag->attribs);
+        tag->attribs=NULL;
     }
     tag->attribCount = 0;
 
-    free(tag->attribs);
-    tag->attribs=NULL;
-
-    free(tag->tagName);
+    if(tag->tagName)
+        free(tag->tagName);
     tag->tagName=NULL;
 
-    free(tag->tagType);
+    if(tag->tagType)
+        free(tag->tagType);
     tag->tagType=NULL;
 }
 
-void clearXMLElement(struct XMLElement* elem)
+void XML_clearElement(struct XMLElement* elem)
 {
     if(!elem) return;
-    for(int i=elem->innerElemCount-1; i>=0; i--)
+    if(elem->innerElements)
     {
-        clearXMLElement(elem->innerElements + i);
+        for(size_t i = 0; i < elem->innerElemCount; i++)
+        {
+            XML_clearElement(elem->innerElements + i);
+        }
+        free( elem->innerElements );
+        elem->innerElements = NULL;
     }
     elem->innerElemCount = 0;
 
-    free(elem->innerElements);
-    elem->innerElements = NULL;
+    XML_clearTag( &(elem->mainTag) );
 
-    clearXMLTag(&(elem->mainTag));
-
-    free(elem->text);
-    elem->text = NULL;
+    if(elem->data)
+    {
+        free(elem->data);
+        elem->data = NULL;
+    }
 }
 
 //end;
