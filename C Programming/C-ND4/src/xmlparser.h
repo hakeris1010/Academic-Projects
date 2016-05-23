@@ -40,7 +40,7 @@ typedef struct XParser
     FILE* inFile;
     FILE* outFile;
     FILE* saveFile;
-    const char* defaultSaveFileName = "savestate.dat";
+    //const char* defaultSaveFileName("savestate.dat");
 
     void (*endConditionChecker)(XParseState*);
 
