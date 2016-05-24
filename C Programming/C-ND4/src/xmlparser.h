@@ -15,6 +15,7 @@
 #define XPARSE_OUTMODE_XML          5
 #define XPARSE_OUTMODE_TEXT_1       6
 #define XPARSE_OUTMODE_TEXT_2       7
+#define XPARSE_OUTMODE_ORIGINAL     8
 
 #define XPARSE_CLOSEMODE_ERASE      10
 #define XPARSE_CLOSEMODE_APPEND     11
@@ -23,14 +24,21 @@
 #define XPARSE_SAVEMODE_ON_EXIT     16
 #define XPARSE_SAVEMODE_AFTER_EVENT 17
 
+#define XPARSE_PARSEMODE_WHOLE_FILE 20
+#define XPARSE_PARSEMODE_SPEC_ELEMS 21
+
+#define XPARSE_FORMAT_XML           25
+#define XPARSE_FORMAT_HTML          26
+
 typedef struct XParseState
 {
     char curAction;
     size_t currentPos;
     size_t elementsPassed;
 
-    char lastError;
+    int lastError;
     char needToClose; //important one!
+    char isCheckerRunning;
 } XParseState;
 
 typedef struct XParser
@@ -40,7 +48,12 @@ typedef struct XParser
     FILE* inFile;
     FILE* outFile;
     FILE* saveFile;
-    //const char* defaultSaveFileName("savestate.dat");
+
+    char fileFormat;
+    char fileMode;
+    char outMode;
+    char closeMode;
+    char saveMode;
 
     void (*endConditionChecker)(XParseState*);
 
@@ -54,8 +67,9 @@ typedef struct XParser
 } XParser;
 
 char xps_init(XParser* prs);
+char xps_clear(XParser* prs);
 
-char xps_setNewInputFile(XParser* prs, FILE* file);
+char xps_setInputFile(XParser* prs, FILE* file);
 char xps_setOutputFile(XParser* prs, FILE* file); //output file - optional. If NULL, will write to a pre-specified filename.
 
 void xps_setModes(XParser* prs, char fileMode, char outMode, char closeMode, char saveMode);
@@ -64,8 +78,13 @@ char xps_loadSaveData(XParser* prs, char resumeParsing, FILE* file); //file - op
 char xps_forceSaveAndStop(XParser* prs, FILE* file);
 
 void xps_setEndConditionCheckerCallback( XParser* prs, void (*callback)(XParseState*) );
-void xps_setRunCheckerThread(XParser* prs, char val);
+void xps_startCheckerThread(XParser* prs, char val);
 
-char xps_startParsing(XParser* prs, FILE* inpStream); //if inpStream is NULL, it'll read from XParser's inFile.
+// if elemCount==0, parse whole file. Else parse elemCount elements.
+// if inpStream is NULL, it'll read from XParser's inFile.
+char xps_startParsing(XParser* prs, char parseMode, size_t elemCount, FILE* inpStream);
+
+char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream);
+
 
 #endif // XMLREADER_H_INCLUDED

@@ -21,8 +21,9 @@ char hstr_addToString(char** target, const char* addstr)
     *target = (char*)realloc(*target, sizeof(char)*( strlen(addstr) + (tmp ? strlen(tmp) : 0) ));
     if(!(*target)) return 1;
 
-    strcpy(*target, tmp);
-    strcpy(*target + strlen(*target), addstr);
+    strcat(*target, tmp);
+    strcat(*target, addstr);
+    free(tmp);
 
     return 0;
 }
