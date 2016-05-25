@@ -37,8 +37,9 @@ typedef struct XParseState
     size_t elementsPassed;
 
     int lastError;
-    char needToClose; //important one!
+    char needToClose;
     char isCheckerRunning;
+    char finishedWork;
 } XParseState;
 
 typedef struct XParser
@@ -55,18 +56,19 @@ typedef struct XParser
     char closeMode;
     char saveMode;
 
-    void (*endConditionChecker)(XParseState*);
+    void (*endConditionChecker)(XParseState*); //maybe useless
+    //pthread_t currThread
 
     XMLElement* parsedElementBuffer;
+    size_t bufferSize;
     size_t elemsInBuffer_NoRecursion;
     size_t elemsInBuffer_Recursioned;
-    size_t bufferSize;
 
     size_t maxBuffSize; //excluding the OUT_TO_MEMORY memory
     size_t maxElemsInBuff; //one of these, or both. If exceeds, write 2 file. (maybe use stack???)
 } XParser;
 
-char xps_init(XParser* prs);
+char xps_init(XParser* prs, char allocateState, char setAsCurrent);
 char xps_clear(XParser* prs);
 
 char xps_setInputFile(XParser* prs, FILE* file);
@@ -77,7 +79,7 @@ void xps_setModes(XParser* prs, char fileMode, char outMode, char closeMode, cha
 char xps_loadSaveData(XParser* prs, char resumeParsing, FILE* file); //file - optional. If NULL, will load from a pre-specified filename.
 char xps_forceSaveAndStop(XParser* prs, FILE* file);
 
-void xps_setEndConditionCheckerCallback( XParser* prs, void (*callback)(XParseState*) );
+void xps_setEndConditionCheckerCallback( XParser* prs, void (*callback)(XParseState*) ); //maybe useless
 void xps_startCheckerThread(XParser* prs, char val);
 
 // if elemCount==0, parse whole file. Else parse elemCount elements.

@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include "interface.h"
+#include "interface.h"
 #include "htools/logger.h"
+#include "xmlparser.h"
 
 int main()
 {
@@ -11,6 +12,9 @@ int main()
 
     hlogf("C Test no. %d\n", 10);
     hlogf("Kawaii miku-chan~~~\n");
+
+    XParser newParser;
+    xps_init(&newParser);
 
     //hlog_closeLogFile();
 

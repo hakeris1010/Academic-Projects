@@ -34,6 +34,10 @@
 			<Add directory="C:/Users/KestutisAdmin/Documents/CodeBlocks Projects/Academic-Projects/C Programming/C-ND4/src" />
 			<Add directory="C:/Users/Kestutis/Documents/CodeBlocks Projects/Univeras GitHub Repo/RepoSpace/C Programming/C-ND4/src" />
 		</Compiler>
+		<Unit filename="src/arraystack/arraystack.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/arraystack/arraystack.h" />
 		<Unit filename="src/htools/hfun.c">
 			<Option compilerVar="CC" />
 		</Unit>
