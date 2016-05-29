@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <htools/logger.h>
 #include "xmlparser.h"
 
@@ -18,14 +19,10 @@
 #define XPARSE_DEFAULT_MAX_ELEMENTS_ON_BUFFER  8    //use either this or next, or both.
 #define XPARSE_DEFAULT_MAX_ELEMBUFFER_SIZE     1024 //maximum element buffer size
 
-//DeFaUlTs
-const static size_t Xps_Default_fileMode  = XPARSE_FILEMODE_TO_MEMORY;
-const static size_t Xps_Default_outMode   = XPARSE_OUTMODE_XML;
-const static size_t Xps_Default_closeMode = XPARSE_CLOSEMODE_APPEND;
-const static size_t Xps_Default_saveMode  = XPARSE_SAVEMODE_NO_SAVE;
+//Private DeFaUlTs
+static const char* Xps_Default_saveFileName = "savedata";
 
-const static size_t Xps_Default_fileFormat = XPARSE_FORMAT_XML;
-
+//------------- Various structures -------------//
 //Maybe won't be needed.
 union XMLElement_Union
 {
@@ -42,19 +39,20 @@ union XMLAttrib_Union
 //errcodes
 enum XpsErrorEnum
 {
-    No_Error = 0,
-    Bad_Malloc
+    Xps_Err_NoError = 0,
+    Xps_Err_BadMalloc,
+    Xps_Err_BadFile
 };
 
 //------------- State static variables --------------//
-static int xps_stat_ErrCode = No_Error; //last error
+
+static int xps_stat_ErrCode = Xps_Err_NoError; //last error
 static char xps_stat_registeredSaver = 0; //if saver function is registered to run at exit.
 
 XParser* xps_stat_currentParser = NULL; //current XParser
 
 //------------------- Functions ---------------------//
 // Private ones.
-
 //Data Saver (Works on currentParser) (Important!)
 void xps_priv_SaveCurrentParserData()
 {
@@ -73,13 +71,42 @@ void xps_priv_SaveCurrentParserData()
 char xps_priv_initState(XParseState* st)
 {
     if(!st) return 1;
-    prs->thisState->curAction = XPARSE_ACTION_IDLE;
-    prs->thisState->currentPos = 0;
-    prs->thisState->elementsPassed = 0;
-    prs->thisState->isCheckerRunning = 0;
-    prs->thisState->lastError = No_Error;
-    prs->thisState->needToClose = 0;
+    st->curAction = XPARSE_ACTION_IDLE;
+    st->currentPos = 0;
+    st->elementsPassed = 0;
+    st->isCheckerRunning = 0;
+    st->lastError = Xps_Err_NoError;
+    st->needToClose = 0;
     return 0;
+}
+
+//File opener
+char xps_priv_setFile(XParser* prs, const char* fName, FILE* file, char isInput)
+{
+    if(!prs)
+        return 1;
+    FILE** curFile = (isInput ? &(prs->inFile) : &(prs->outFile));
+    if(fName)
+    {
+        curFile = fopen(fName, "r");
+        if(!curFile)
+        {
+            xps_stat_ErrCode = Xps_Err_BadFile;
+            return 2;
+        }
+        return 0;
+    }
+    else if(file)
+    {
+        if(ftell(file) < 0)
+        {
+            xps_stat_ErrCode = Xps_Err_BadFile;
+            return 3; //bad file.
+        }
+        curFile = file;
+        return 0;
+    }
+    return 4;
 }
 
 // Public ones.
@@ -94,16 +121,17 @@ char xps_init(XParser* prs, char allocateState, char setAsCurrent)
     prs->elemsInBuffer_NoRecursion = 0;
     prs->elemsInBuffer_Recursioned = 0;
 
-    prs->closeMode = Xps_Default_closeMode;
-    prs->fileMode = Xps_Default_fileMode;
-    prs->outMode = Xps_Default_outMode;
-    prs->saveMode = Xps_Default_saveMode;
+    prs->closeMode = XPS_DEFAULT_CLOSEMODE;
+    prs->fileMode = XPS_DEFAULT_FILEMODE;
+    prs->outMode = XPS_DEFAULT_OUTMODE;
+    prs->saveMode = XPS_DEFAULT_SAVEMODE;
 
-    prs->fileFormat = Xps_Default_fileFormat;
+    prs->fileFormat = XPS_DEFAULT_FILEFORMAT;
 
     prs->inFile = NULL;
     prs->outFile = NULL;
-    prs->saveFile = NULL;
+    prs->inFileName = NULL;
+    prs->outFileName = NULL;
 
     prs->maxBuffSize = XPARSE_DEFAULT_MAX_ELEMBUFFER_SIZE;
     prs->maxElemsInBuff = XPARSE_DEFAULT_MAX_ELEMENTS_ON_BUFFER;
@@ -113,7 +141,7 @@ char xps_init(XParser* prs, char allocateState, char setAsCurrent)
         prs->thisState = (XParseState*) malloc( sizeof(XParseState) );
         if(!(prs->thisState))
         {
-            xps_stat_ErrCode = Bad_Malloc;
+            xps_stat_ErrCode = Xps_Err_BadMalloc;
             return 2;
         }
         xps_priv_initState(prs->thisState);
@@ -160,8 +188,10 @@ char xps_clear(XParser* prs)
         fclose(prs->inFile);
     if(prs->outFile)
         fclose(prs->outFile);
-    if(prs->saveFile)
-        fclose(prs->saveFile);
+    if(prs->inFileName)
+        free(prs->inFileName);
+    if(prs->outFileName)
+        free(prs->outFileName);
 
     xps_init(prs, 0, 0); //default all the other variables.
 
@@ -171,19 +201,23 @@ char xps_clear(XParser* prs)
     return 0;
 }
 
-char xps_setInputFile(XParser* prs, FILE* file)
+char xps_setInputFile(XParser* prs, const char* fName, FILE* file)
 {
-
+    return xps_priv_setFile(prs, fName, file, 1);
 }
 
-char xps_setOutputFile(XParser* prs, FILE* file) //output file - optional. If NULL, will write to a pre-specified filename.
+char xps_setOutputFile(XParser* prs, const char* fName, FILE* file) //output file - optional. If NULL, will write to a pre-specified filename.
 {
-
+    return xps_priv_setFile(prs, fName, file, 0);
 }
 
 void xps_setModes(XParser* prs, char fileMode, char outMode, char closeMode, char saveMode)
 {
-
+    if(!prs) return;
+    prs->fileMode = fileMode;
+    prs->outMode = outMode;
+    prs->closeMode = closeMode;
+    prs->saveMode = saveMode;
 }
 
 char xps_loadSaveData(XParser* prs, char resumeParsing, FILE* file) //file - optional. If NULL, will load from a pre-specified filename.
@@ -191,28 +225,19 @@ char xps_loadSaveData(XParser* prs, char resumeParsing, FILE* file) //file - opt
 
 }
 
-char xps_forceSaveAndStop(XParser* prs, FILE* file)
-{
-
-}
-
-void xps_setEndConditionCheckerCallback( XParser* prs, void (*callback)(XParseState*) )
-{
-
-}
-
-void xps_startCheckerThread(XParser* prs, char val)
+char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
 {
 
 }
 
 char xps_startParsing(XParser* prs, char parseMode, size_t elemCount, FILE* inpStream)
 {
+    if(!prs ? 1 : (!prs->inFile ? 1 : ftell(prs->inFile) < 0))
+    {
+        xps_stat_ErrCode = Xps_Err_BadFile;
+        return 1;
+    }
 
-}
-
-char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
-{
 
 }
 

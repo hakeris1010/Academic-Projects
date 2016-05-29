@@ -30,6 +30,14 @@
 #define XPARSE_FORMAT_XML           25
 #define XPARSE_FORMAT_HTML          26
 
+// DeFaUlTs
+const static char XPS_DEFAULT_FILEMODE  = XPARSE_FILEMODE_TO_MEMORY;
+const static char XPS_DEFAULT_OUTMODE   = XPARSE_OUTMODE_XML;
+const static char XPS_DEFAULT_CLOSEMODE = XPARSE_CLOSEMODE_APPEND;
+const static char XPS_DEFAULT_SAVEMODE  = XPARSE_SAVEMODE_NO_SAVE;
+const static char XPS_DEFAULT_FILEFORMAT = XPARSE_FORMAT_XML;
+
+// Structures
 typedef struct XParseState
 {
     char curAction;
@@ -48,7 +56,8 @@ typedef struct XParser
 
     FILE* inFile;
     FILE* outFile;
-    FILE* saveFile;
+    char* inFileName;
+    char* outFileName;
 
     char fileFormat;
     char fileMode;
@@ -68,18 +77,25 @@ typedef struct XParser
     size_t maxElemsInBuff; //one of these, or both. If exceeds, write 2 file. (maybe use stack???)
 } XParser;
 
+// Functions
 char xps_init(XParser* prs, char allocateState, char setAsCurrent);
 char xps_clear(XParser* prs);
 
-char xps_setInputFile(XParser* prs, FILE* file);
-char xps_setOutputFile(XParser* prs, FILE* file); //output file - optional. If NULL, will write to a pre-specified filename.
+/*File setters. Arguments:
+ - 'fName': if NULL, 'file' will be directly imported to structure. First priority - if set, 'file' will be ignored.
+ - 'file': optional. If NULL, will write to a 'fName' file. Useful for using stdin, stdout.
+ -  if both are NULL, nothing will be done. */
+char xps_setInputFile(XParser* prs, const char* fName, FILE* file);
+char xps_setOutputFile(XParser* prs, const char* fName, FILE* file);
 
+//Mode setter. If unsure, use XPARSER_DEFAULT modes.
 void xps_setModes(XParser* prs, char fileMode, char outMode, char closeMode, char saveMode);
 
 char xps_loadSaveData(XParser* prs, char resumeParsing, FILE* file); //file - optional. If NULL, will load from a pre-specified filename.
-char xps_forceSaveAndStop(XParser* prs, FILE* file);
 
-void xps_setEndConditionCheckerCallback( XParser* prs, void (*callback)(XParseState*) ); //maybe useless
+//Multithreading stuff ( maybe won't be developed. )
+char xps_forceSaveAndStop(XParser* prs, FILE* file); //maybe useless
+void xps_setEndConditionCheckerCallback( XParser* prs, void (*callback)(XParseState*) );
 void xps_startCheckerThread(XParser* prs, char val);
 
 // if elemCount==0, parse whole file. Else parse elemCount elements.
