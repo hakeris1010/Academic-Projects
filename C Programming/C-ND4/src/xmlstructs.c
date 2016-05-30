@@ -1,12 +1,22 @@
 #include <stdlib.h>
 #include "xmlstructs.h"
 
+//Predefined self-close tags: ( separated by / ).
+const char* HTML_SelfCloseTags = "area/base/br/col/command/embed/hr/img/input/keygen/link/meta/param/source/track/wbr/";
+
 char XML_initAttrib(struct XMLAttrib* att)
 {
     if(!att) return 1;
     att->name = NULL;
     att->value = NULL;
     return 0;
+}
+
+XMLAttrib XML_getEmptyAttrib()
+{
+    XMLAttrib attr;
+    XML_initAttrib(&attr);
+    return attr;
 }
 
 char XML_initTag(struct XMLTag* tag)
@@ -19,6 +29,13 @@ char XML_initTag(struct XMLTag* tag)
     return 0;
 }
 
+XMLTag XML_getEmptyTag()
+{
+    XMLTag tg;
+    XML_initTag(&tg);
+    return tg;
+}
+
 char XML_initElement(struct XMLElement* elem)
 {
     if(!elem) return 1;
@@ -27,6 +44,13 @@ char XML_initElement(struct XMLElement* elem)
     elem->innerElements = NULL;
     XML_initTag( &(elem->mainTag) );
     return 0;
+}
+
+XMLElement XML_getEmptyElement()
+{
+    XMLElement el;
+    XML_initElement(&el);
+    return el;
 }
 
 void XML_clearAttrib(struct XMLAttrib* att)

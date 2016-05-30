@@ -25,7 +25,9 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef void* TYPE;
+#define ARRAYSTACK_DEFAULT_PADDING 8
+
+typedef char TYPE;
 
 //ArrayStack wrapper structure
 typedef struct ArrayStack
@@ -34,23 +36,31 @@ typedef struct ArrayStack
     size_t siz;
     size_t cap;
     size_t padding;
+    char nullElemAtEnd;
 } ArrayStack;
 
 //ArrayStack function declarations
-char ArrayStack_init(ArrayStack* st, size_t siz, size_t paddin);
-ArrayStack ArrayStack_create(size_t cp, size_t paddin);
+char ArrayStack_init(ArrayStack* st, size_t siz, size_t paddin, char nullElemEnd);
+ArrayStack ArrayStack_create(size_t cp, size_t paddin, char nullElemEnd);
 void ArrayStack_clear(ArrayStack* st, void (*dealloc)(TYPE* elem));
+
 char ArrayStack_realloc(ArrayStack* st, size_t siz, size_t paddin, const char useCalloc, const char copy);
 void ArrayStack_copyArrays(ArrayStack* arr1, const ArrayStack* arr2, char resizeIfSmall);
 
+void ArrayStack_insertElem(ArrayStack* st, const TYPE elem, size_t pos);
 void ArrayStack_push(ArrayStack* st, const TYPE elem);
-void ArrayStack_deleteElem(ArrayStack* st, size_t pos, void (*dealloc)(TYPE*), char shrinkArray);
-
 TYPE ArrayStack_pop(ArrayStack* st, char nullifyPlace);
+
+void ArrayStack_deleteElem(ArrayStack* st, size_t pos, void (*dealloc)(TYPE*), char shrinkArray);
 TYPE ArrayStack_getElement(ArrayStack st, size_t pos);
 int ArrayStack_linearSearchElem(ArrayStack st, const TYPE el, char (*_evalClbk)(const TYPE, const TYPE));
 void ArrayStack_Show(ArrayStack st, char showTillCap, char showPointer, char showReverse, char* (*elemStringer)(const TYPE), FILE* outStream);
 
 int ArrayStack_getLastError();
+
+//New funcs
+//Beware! If arrSiz = 0, strlen() will be used to determine lenght!!! Might crash if TYPE's not char!
+void ArrayStack_pushArray(ArrayStack* st, const TYPE* arr, size_t arrSiz);
+void ArrayStack_concatenateStacks(ArrayStack* st1, const ArrayStack* st2);
 
 #endif // ARRAYSTACK_H_INCLUDED

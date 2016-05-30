@@ -20,6 +20,18 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
    function definintions and implementations and the Internal Structure
    of the implementation. */
 
+/* News:
+   Version 1.2:
+    - More generic: now can use with structs.
+    - For that added memory block checker using memcmp, instead of relational ops.
+    - Removed some bugs: clearing array (not checking if block is null),
+      and some others, related to the same reason.
+    - Added getLastError and pop function with an option to nullify the memory block.
+
+   Version 1.3:
+    - Support for using as a String, with Null-Element adding at the end.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +46,7 @@ along with Deque-1337.  If not, see <http://www.gnu.org/licenses/>. **/
 #endif // DEBUG
 
 //The Version
-#define ARRSTACK_VERSION "v1.0"
+#define ARRSTACK_VERSION "v1.3"
 
 //Default properties define'd
 #define ARRSTACK_SHRINK_FACTOR 2 // if free space exceeds FACTOR paddings, shrink by FACTOR/2 paddings.
@@ -49,14 +61,14 @@ enum ArrayStackErrors
 static int errCode = No_Error;
 
 //privs
-TYPE ArrayStack_priv_getDummyType()
+static TYPE ArrayStack_priv_getDummyType()
 {
     TYPE ta;
     memset(&ta, 0, sizeof(TYPE));
     return ta;
 }
 
-char ArrayStack_priv_isElementNull(TYPE elem)
+static char ArrayStack_priv_isElementNull(TYPE elem)
 {
     char checkBlock[ sizeof(TYPE) ];
     memset(checkBlock, 0, sizeof(checkBlock));
@@ -73,7 +85,7 @@ char ArrayStack_realloc(ArrayStack* st, size_t siz, size_t paddin, const char us
     if(copy)
     {
         DEBLOG("[ArrayStack_Realloc]: Copy! Initing tmp, copying st to tmp.\n");
-        if(ArrayStack_init(&tmp, st->siz, st->padding))
+        if(ArrayStack_init(&tmp, st->siz, st->padding, st->nullElemAtEnd))
             return 3;
         ArrayStack_copyArrays(&tmp, st, 0);
     }
@@ -82,23 +94,6 @@ char ArrayStack_realloc(ArrayStack* st, size_t siz, size_t paddin, const char us
 
     st->cap = siz;
     DEBLOG("[ArrayStack_Realloc]: nuCap (siz)=%d, set cap.\n", siz);
-
-    /*if(useCalloc)
-    {
-        if(st->arr)
-        {
-            DEBLOG("[ArrayStack_Realloc]: Freeing st->arr\n");
-            free( st->arr );
-        }
-        DEBLOG("[ArrayStack_Realloc]: Callocing.\n");
-        st->arr = ( TYPE* )calloc( sizeof(TYPE) , siz );
-    }
-    else
-    {
-        DEBLOG("[ArrayStack_Realloc]: Reallocing.\n");
-        st->arr = ( TYPE* )realloc(st->arr, sizeof(TYPE) * siz );
-    }*/
-
     DEBLOG("[ArrayStack_Realloc]: Reallocing %s.\n", (useCalloc ? "and memset'ing 0" : ""));
     st->arr = ( TYPE* )realloc(st->arr, sizeof(TYPE) * siz );
 
@@ -122,7 +117,7 @@ char ArrayStack_realloc(ArrayStack* st, size_t siz, size_t paddin, const char us
     return 0;
 }
 
-char ArrayStack_init(ArrayStack* st, size_t siz, size_t paddin)
+char ArrayStack_init(ArrayStack* st, size_t siz, size_t paddin, char nullElemEnd)
 {
     if(!st) return 1;
 
@@ -132,14 +127,15 @@ char ArrayStack_init(ArrayStack* st, size_t siz, size_t paddin)
 
     st->siz = 0;
     st->padding = paddin;
+    st->nullElemAtEnd = nullElemEnd;
 
     return 0;
 }
 
-ArrayStack ArrayStack_create(size_t cp, size_t paddin)
+ArrayStack ArrayStack_create(size_t cp, size_t paddin, char nullElemEnd)
 {
     ArrayStack tmp;
-    ArrayStack_init(&tmp, cp, paddin);
+    ArrayStack_init(&tmp, cp, paddin, nullElemEnd);
     return tmp;
 }
 
@@ -164,23 +160,40 @@ void ArrayStack_clear(ArrayStack* st, void (*dealloc)(TYPE*))
     st->cap = 0;
     st->siz = 0;
     st->padding = 0;
+    st->nullElemAtEnd = 0;
+}
+
+void ArrayStack_insertElem(ArrayStack* st, const TYPE elem, size_t pos)
+{
+    if(!st ? 1 : pos > st->siz) return; //can insert only max. at siz.
+    DEBLOG("\n[ArrayStack_insertElem]: elem: %p, st->siz=%d, st->cap=%d, insPos=%d\n", elem, st->siz, st->cap, pos);
+    if(st->siz >= st->cap)
+    {
+        DEBLOG("[ArrayStack_insertElem]: Reallocing! (st->siz >= st->cap)\n");
+        ArrayStack_realloc(st, st->siz + 1, st->padding, 1, 1);
+    }
+    if(st->siz < st->cap)
+    {
+        DEBLOG("[ArrayStack_insertElem]: Shifting array from pos to end...\n");
+        for(size_t i = st->siz; i > pos; i--)
+        {
+            st->arr[i] = st->arr[i-1];
+        }
+        DEBLOG("[ArrayStack_insertElem]: Assing elem to st->arr[pos]\n");
+        st->arr[ pos ] = elem;
+        (st->siz)++;
+    }
 }
 
 void ArrayStack_push(ArrayStack* st, const TYPE elem)
 {
     if(!st) return;
     DEBLOG("\n[ArrayStack_Push]: elem: %p, st->siz=%d, st->cap=%d\n", elem, st->siz, st->cap);
-    if(st->siz >= st->cap)
-    {
-        DEBLOG("[ArrayStack_Push]: Reallocing! (st->siz >= st->cap)\n");
-        ArrayStack_realloc(st, st->siz + 1, st->padding, 1, 1);
-    }
-    if(st->siz < st->cap)
-    {
-        DEBLOG("[ArrayStack_Push]: Assing elem to st->arr[siz]\n");
-        st->arr[ st->siz ] = elem;
-        (st->siz)++;
-    }
+
+    ArrayStack_insertElem( st, elem, ((st->nullElemAtEnd && st->siz > 0) ? st->siz-1 : st->siz) );
+
+    if(st->nullElemAtEnd && !ArrayStack_priv_isElementNull( st->arr[ st->siz-1 ] ))
+        ArrayStack_insertElem( st, ArrayStack_priv_getDummyType(), st->siz );
 }
 
 void ArrayStack_deleteElem(ArrayStack* st, size_t pos, void (*dealloc)(TYPE*), char shrinkArray)
@@ -229,6 +242,23 @@ TYPE ArrayStack_getElement(ArrayStack st, size_t pos)
         return ArrayStack_priv_getDummyType();
 
     return st.arr[pos];
+}
+
+void ArrayStack_pushArray(ArrayStack* st, const TYPE* arr, size_t arrSiz)
+{
+    if(!st || !arr) return;
+    if(arrSiz == 0)
+        arrSiz = strlen(arr); //might crash!
+    for(size_t i = 0; i < arrSiz; i++)
+    {
+        ArrayStack_push(st, arr[i]);
+    }
+}
+
+void ArrayStack_concatenateStacks(ArrayStack* st1, const ArrayStack* st2)
+{
+    if(!st1 || !st2) return;
+    ArrayStack_pushArray(st1, st2->arr, st2->siz);
 }
 
 TYPE ArrayStack_pop(ArrayStack* st, char nullifyPlace)

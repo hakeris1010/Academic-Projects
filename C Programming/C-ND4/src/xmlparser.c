@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <htools/logger.h>
+#include <arraystack/arraystack.h>
 #include "xmlparser.h"
 
 //version
@@ -49,12 +50,12 @@ enum XpsErrorEnum
 static int xps_stat_ErrCode = Xps_Err_NoError; //last error
 static char xps_stat_registeredSaver = 0; //if saver function is registered to run at exit.
 
-XParser* xps_stat_currentParser = NULL; //current XParser
+static XParser* xps_stat_currentParser = NULL; //current XParser
 
 //------------------- Functions ---------------------//
 // Private ones.
 //Data Saver (Works on currentParser) (Important!)
-void xps_priv_SaveCurrentParserData()
+static void xps_priv_SaveCurrentParserData()
 {
     hlogf("\n[atexit()]: [xps_priv_SaveCurrentParserData]\n");
     if(xps_stat_currentParser)
@@ -68,7 +69,7 @@ void xps_priv_SaveCurrentParserData()
 }
 
 // XPS State Init
-char xps_priv_initState(XParseState* st)
+static char xps_priv_initState(XParseState* st)
 {
     if(!st) return 1;
     st->curAction = XPARSE_ACTION_IDLE;
@@ -81,15 +82,15 @@ char xps_priv_initState(XParseState* st)
 }
 
 //File opener
-char xps_priv_setFile(XParser* prs, const char* fName, FILE* file, char isInput)
+static char xps_priv_setFile(XParser* prs, const char* fName, FILE* file, char isInput)
 {
     if(!prs)
         return 1;
     FILE** curFile = (isInput ? &(prs->inFile) : &(prs->outFile));
     if(fName)
     {
-        curFile = fopen(fName, "r");
-        if(!curFile)
+        *curFile = fopen(fName, "r");
+        if(!(*curFile))
         {
             xps_stat_ErrCode = Xps_Err_BadFile;
             return 2;
@@ -103,7 +104,7 @@ char xps_priv_setFile(XParser* prs, const char* fName, FILE* file, char isInput)
             xps_stat_ErrCode = Xps_Err_BadFile;
             return 3; //bad file.
         }
-        curFile = file;
+        *curFile = file;
         return 0;
     }
     return 4;
@@ -230,15 +231,110 @@ char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
 
 }
 
-char xps_startParsing(XParser* prs, char parseMode, size_t elemCount, FILE* inpStream)
+//----------------- Parser functions ------------------//
+//is char good in context: 0 if good, 1 if continue, 2 if error and return.
+static char xps_isCharGoodInContext(char c, char onName, char onAttrib, char onValue)
+{
+
+
+    return 0;
+}
+
+// Tag getter
+char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char resetFilePos)
 {
     if(!prs ? 1 : (!prs->inFile ? 1 : ftell(prs->inFile) < 0))
     {
         xps_stat_ErrCode = Xps_Err_BadFile;
         return 1;
     }
+    size_t curPos = ftell(prs->inFile);
+    if(fseekPosition) //use on binary mode.
+    {
+        fseek(prs->inFile, fseekPosition, SEEK_CUR);
+    }
 
+    char onName = 0, onAttrib = 0, onValue = 0, runThis = 1;
+    char curChar = 0; //our current char.
+    ArrayStack tmpString = ArrayStack_create(1, ARRAYSTACK_DEFAULT_PADDING, 1); //our ArrayStack, which will be used as string.
 
+    while( (curChar = fgetc(prs->inFile))!=EOF && !feof(prs->inFile) && !ferror(prs->inFile) && runThis ) //get char, and if not end.
+    {
+        //check if characted is exlusionary or invalid
+        char goodness = xps_isCharGoodInContext(curChar, onName, onAttrib, onValue);
+
+        if(!onName && !onAttrib && !onValue)
+        {
+            if(curChar=='<')
+            {
+                onName = 1;
+                continue;
+            }
+        }
+        if(onName && !onAttrib && !onValue)
+        {
+
+        }
+    }
+    return 0;
 }
+
+char xps_startParsing(XParser* prs, char parseMode, size_t parseElemCount, FILE* inpStream)
+{
+    if(!prs ? 1 : (!prs->inFile ? 1 : ftell(prs->inFile) < 0))
+    {
+        xps_stat_ErrCode = Xps_Err_BadFile;
+        return 1;
+    }
+    if(!prs->thisState)
+    {
+        prs->thisState = (XParseState*) malloc( sizeof(XParseState) );
+        if(!prs->thisState)
+        {
+            xps_stat_ErrCode = Xps_Err_BadMalloc;
+            return 2;
+        }
+    }
+    prs->thisState->curAction = XPARSE_ACTION_PARSING_INPUT;
+
+    char runThis = 1, onData = 0, onTag = 0; //state vars
+    size_t begTagCount = 0, endTagCount = 0; //counter vars.
+    XMLTag curTag = XML_getEmptyTag();
+    XMLElement curElem = XML_getEmptyElement();
+    char curChar; //current character processed
+
+    while( (curChar = fgetc(prs->inFile))!=EOF && !feof(prs->inFile) && !ferror(prs->inFile) && runThis ) //get char, and if not end.
+    {
+        if(!onTag && !onData)
+        {
+            if(curChar == '<') //found start
+            {
+                char tret = xps_getTagOnPosition(prs, &curTag, -1, 0); //get our tag at this pos and use current inFile.
+                //if(tret==1) break; //eof reach'd
+
+                onTag = 1;
+            }
+        }
+
+        if(onTag && !onData)
+        {
+
+        }
+
+        if(!onTag && onData)
+        {
+
+        }
+
+        if(onTag && onData)
+        {
+
+        }
+    }
+    return 0;
+}
+
+//WooTz0r3d
+
 
 //end;

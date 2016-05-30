@@ -40,6 +40,7 @@ const static char XPS_DEFAULT_FILEFORMAT = XPARSE_FORMAT_XML;
 // Structures
 typedef struct XParseState
 {
+    //some of the not-really-used vars
     char curAction;
     size_t currentPos;
     size_t elementsPassed;
@@ -48,6 +49,8 @@ typedef struct XParseState
     char needToClose;
     char isCheckerRunning;
     char finishedWork;
+
+    //other variables.
 } XParseState;
 
 typedef struct XParser
@@ -101,6 +104,7 @@ void xps_startCheckerThread(XParser* prs, char val);
 // if elemCount==0, parse whole file. Else parse elemCount elements.
 // if inpStream is NULL, it'll read from XParser's inFile.
 char xps_startParsing(XParser* prs, char parseMode, size_t elemCount, FILE* inpStream);
+char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char resetFile);
 
 char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream);
 
