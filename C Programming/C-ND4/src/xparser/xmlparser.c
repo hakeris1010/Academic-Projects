@@ -246,7 +246,7 @@ typedef struct Xps_CharProps
 {
     char goodnessInContext;
     char charType;
-}
+} Xps_CharProps;
 
 static char xps_isCharGoodInContext(char c, char onName, char onAttrib, char onValue)
 {
@@ -264,7 +264,7 @@ static char xps_isCharGoodInContext(char c, char onName, char onAttrib, char onV
     {
         if((onName || onAttrib) && (c!='_' && c!='.' && c!='-' && c!=':')) //the last valid characters of name
             return 2;
-        if
+
     }
     return 0; //else good (if onValue, everything's good.
 }

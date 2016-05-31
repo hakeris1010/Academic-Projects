@@ -5,7 +5,7 @@
 #include "htools/hfun.h"
 #include "htools/hstring.h"
 #include "arraystack/arraystack.h"
-#include "xmlparser.h"
+#include "xparser/xmlparser.h"
 
 char* charToString(const char ch)
 {

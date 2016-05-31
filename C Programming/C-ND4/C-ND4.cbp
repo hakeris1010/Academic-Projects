@@ -57,14 +57,18 @@
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/xmlparser.c">
+		<Unit filename="src/xparser/xmlparser.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/xmlparser.h" />
-		<Unit filename="src/xmlstructs.c">
+		<Unit filename="src/xparser/xmlparser.h" />
+		<Unit filename="src/xparser/xmlstandard.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/xmlstructs.h" />
+		<Unit filename="src/xparser/xmlstandard.h" />
+		<Unit filename="src/xparser/xmlstructs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/xparser/xmlstructs.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
