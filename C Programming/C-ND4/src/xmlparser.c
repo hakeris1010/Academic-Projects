@@ -232,12 +232,41 @@ char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
 }
 
 //----------------- Parser functions ------------------//
-//is char good in context: 0 if good, 1 if continue, 2 if error and return.
+//is char good in context: 0 if good, 1 if continue, 2 if error and return, 3 - special (situation defined).
+const static char XPS_CHARTYPE_ALPHANUM   = 1;
+const static char XPS_CHARTYPE_WHITESPACE = 2;
+const static char XPS_CHARTYPE_ASCIIOTHER = 3;
+const static char XPS_CHARTYPE_EXTENDED   = 4;
+
+const static char XPS_CHARTYPE_MLINIT     = 10; //? and !
+
+//needs more, like tagstart, tagend, slash, ! and ?, and more...
+
+typedef struct Xps_CharProps
+{
+    char goodnessInContext;
+    char charType;
+}
+
 static char xps_isCharGoodInContext(char c, char onName, char onAttrib, char onValue)
 {
-
-
-    return 0;
+    if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
+    {
+        if(!onName && !onAttrib && !onValue)
+            return 3;
+    }
+    else if(c=='\r' || c=='\n' || c=='\t' || c==' ') //whitespace
+    {
+        if(onName || onAttrib) return 2;
+        if(!onValue) return 1;
+    }
+    else //all the others
+    {
+        if((onName || onAttrib) && (c!='_' && c!='.' && c!='-' && c!=':')) //the last valid characters of name
+            return 2;
+        if
+    }
+    return 0; //else good (if onValue, everything's good.
 }
 
 // Tag getter
