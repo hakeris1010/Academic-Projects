@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include "xmlstructs.h"
 
-//Predefined self-close tags: ( separated by / ).
-const char* HTML_SelfCloseTags = "area/base/br/col/command/embed/hr/img/input/keygen/link/meta/param/source/track/wbr/";
-
 char XML_initAttrib(struct XMLAttrib* att)
 {
     if(!att) return 1;

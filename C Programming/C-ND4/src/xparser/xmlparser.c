@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <htools/logger.h>
 #include <arraystack/arraystack.h>
+#include "xmlstandard.h"
 #include "xmlparser.h"
 
 //version
@@ -42,7 +44,8 @@ enum XpsErrorEnum
 {
     Xps_Err_NoError = 0,
     Xps_Err_BadMalloc,
-    Xps_Err_BadFile
+    Xps_Err_BadFile,
+    Xps_Err_BadSyntax
 };
 
 //------------- State static variables --------------//
@@ -110,7 +113,7 @@ static char xps_priv_setFile(XParser* prs, const char* fName, FILE* file, char i
     return 4;
 }
 
-// Public ones.
+//------------------- Public ones. --------------------//
 
 char xps_init(XParser* prs, char allocateState, char setAsCurrent)
 {
@@ -232,47 +235,71 @@ char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
 }
 
 //----------------- Parser functions ------------------//
+
 //is char good in context: 0 if good, 1 if continue, 2 if error and return, 3 - special (situation defined).
-const static char XPS_CHARTYPE_ALPHANUM   = 1;
-const static char XPS_CHARTYPE_WHITESPACE = 2;
-const static char XPS_CHARTYPE_ASCIIOTHER = 3;
-const static char XPS_CHARTYPE_EXTENDED   = 4;
-
-const static char XPS_CHARTYPE_MLINIT     = 10; //? and !
-
-//needs more, like tagstart, tagend, slash, ! and ?, and more...
-
-typedef struct Xps_CharProps
+static Xps_CharProps xps_isCharGoodInContext(char c, char onName, char onAttrib, char onValue)
 {
-    char goodnessInContext;
-    char charType;
-} Xps_CharProps;
+    // firstly, set char type. By default, just this.
+    char charType = XPS_CHARTYPE_DEFAULT;
 
-static char xps_isCharGoodInContext(char c, char onName, char onAttrib, char onValue)
-{
-    if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
+    if( isalpha(c) )
+        charType = XPS_CHARTYPE_ALPHA;
+    else if( isdigit(c) )
+        charType = XPS_CHARTYPE_NUMBER;
+    else if(c=='\r' || c=='\n' || c=='\t' || c==' ') //whitespace
+        charType = XPS_CHARTYPE_WHITESPACE;
+    else if(c > 32 && c < 127) // other valid ascii's (32 - 127)
+        charType = XPS_CHARTYPE_ASCIIOTHER;
+    else   // all the others in a byte.
+        charType = XPS_CHARTYPE_EXTENDED;
+
+    // now set our char's class. By default, standard.
+    char charClass = XPS_CHARCLASS_STANDARD;
+
+    if(charType == XPS_CHARTYPE_EXTENDED)
+        charClass = XPS_CHARCLASS_EXTENDED;
+    else if(c == '&')
+        charClass = XPS_CHARCLASS_AMPERSAND;
+    else if(c == '/')
+        charClass = XPS_CHARCLASS_END;
+    else if(c == '!')
+        charClass = XPS_CHARCLASS_HTMLDECLARATION;
+    else if(c == ':')
+        charClass = XPS_CHARCLASS_NAMESPACE;
+    else if(c == '\"')
+        charClass = XPS_CHARCLASS_QUOTES;
+    else if(c == '<' || c == '>')
+        charClass = XPS_CHARCLASS_TAG;
+    else if(c == '?')
+        charClass = XPS_CHARCLASS_XMLINIT;
+
+    //Now, set our goodness.
+    char goodInCont = 0;
+
+
+    /*if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
     {
         if(!onName && !onAttrib && !onValue)
-            return 3;
+            return (Xps_CharProps){3, XPS_CHARTYPE_ALPHANUM};
     }
     else if(c=='\r' || c=='\n' || c=='\t' || c==' ') //whitespace
     {
-        if(onName || onAttrib) return 2;
-        if(!onValue) return 1;
+        if(onName || onAttrib) return (Xps_CharProps){2, XPS_CHARTYPE_WHITESPACE};
+        if(!onValue) return (Xps_CharProps){1, XPS_CHARTYPE_WHITESPACE};
     }
     else //all the others
     {
-        if((onName || onAttrib) && (c!='_' && c!='.' && c!='-' && c!=':')) //the last valid characters of name
-            return 2;
+        if((onName || onAttrib) && (c!='_' && c!='.' && c!='-' && c!=':' && c!='!' && c!='?')) //the last valid characters of name
+            return (Xps_CharProps){2, XPS_CHARTYPE_EXTENDED};
+    }*/
 
-    }
-    return 0; //else good (if onValue, everything's good.
+    return (Xps_CharProps){0, charType, charClass}; //else good (if onValue, everything's good.
 }
 
 // Tag getter
 char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char resetFilePos)
 {
-    if(!prs ? 1 : (!prs->inFile ? 1 : ftell(prs->inFile) < 0))
+    if((!prs ? 1 : (!prs->inFile ? 1 : ftell(prs->inFile) < 0)) || !curTag)
     {
         xps_stat_ErrCode = Xps_Err_BadFile;
         return 1;
@@ -283,27 +310,55 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
         fseek(prs->inFile, fseekPosition, SEEK_CUR);
     }
 
-    char onName = 0, onAttrib = 0, onValue = 0, runThis = 1;
+    char onInit = 0, onName = 0, onAttrib = 0, onValue = 0, runThis = 1, wereChars = 0;
     char curChar = 0; //our current char.
     ArrayStack tmpString = ArrayStack_create(1, ARRAYSTACK_DEFAULT_PADDING, 1); //our ArrayStack, which will be used as string.
 
     while( (curChar = fgetc(prs->inFile))!=EOF && !feof(prs->inFile) && !ferror(prs->inFile) && runThis ) //get char, and if not end.
     {
         //check if characted is exlusionary or invalid
-        char goodness = xps_isCharGoodInContext(curChar, onName, onAttrib, onValue);
+        Xps_CharProps goodness = xps_isCharGoodInContext(curChar, onName, onAttrib, onValue);
 
-        if(!onName && !onAttrib && !onValue)
+        if(!onInit && !onName && !onAttrib && !onValue)
         {
-            if(curChar=='<')
-            {
-                onName = 1;
+            if(curChar=='<' || goodness.goodnessInContext==1)
                 continue;
-            }
+            /*if(goodness.charType = XPS_CHARTYPE_MLINIT)
+                onInit = 1;
+            if(goodness.charType = XPS_CHARTYPE_NAMESTART)
+                onName = 1;*/
         }
-        if(onName && !onAttrib && !onValue)
+        if(onInit && !onName && !onAttrib && !onValue)
         {
 
         }
+        if(!onInit && onName && !onAttrib && !onValue)
+        {
+
+        }
+
+        /*
+        if(!wereChars && goodness.goodnessInContext==0)
+            {
+                wereChars = 1;
+                ArrayStack_push(curChar); //g00d 0n n4m3.
+            }
+            else if(wereChars && (goodness.charType==XPS_CHARTYPE_WHITESPACE || curChar == '>'))
+            {
+                onName = 0;
+                onAttrib = 1; //name end, expect attrib.
+
+                hstr_addToString( &(curTag.tagName), tmpString.arr ); //add this str to name.
+                ArrayStack_clear( &tmpString );
+            }
+            else if(wereChars && goodness.goodnessInContext == 2) //maybe will be pushed outta here.
+            {
+                xps_stat_ErrCode = Xps_Err_BadSyntax;
+                return 2;
+            }
+        */
+
+        //last check - if err0r.
     }
     return 0;
 }
@@ -328,9 +383,10 @@ char xps_startParsing(XParser* prs, char parseMode, size_t parseElemCount, FILE*
 
     char runThis = 1, onData = 0, onTag = 0; //state vars
     size_t begTagCount = 0, endTagCount = 0; //counter vars.
-    XMLTag curTag = XML_getEmptyTag();
-    XMLElement curElem = XML_getEmptyElement();
+
     char curChar; //current character processed
+    XMLTag curTag = XML_getEmptyTag(); //current temp. tag and elem.
+    XMLElement curElem = XML_getEmptyElement();
 
     while( (curChar = fgetc(prs->inFile))!=EOF && !feof(prs->inFile) && !ferror(prs->inFile) && runThis ) //get char, and if not end.
     {
@@ -340,7 +396,6 @@ char xps_startParsing(XParser* prs, char parseMode, size_t parseElemCount, FILE*
             {
                 char tret = xps_getTagOnPosition(prs, &curTag, -1, 0); //get our tag at this pos and use current inFile.
                 //if(tret==1) break; //eof reach'd
-
                 onTag = 1;
             }
         }

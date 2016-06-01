@@ -1,16 +1,7 @@
 #ifndef XMLSTRUCTS_H_INCLUDED
 #define XMLSTRUCTS_H_INCLUDED
 
-//XML-Type
-//Tag Types
-#define XML_TAGTYPE_UNDEFINED  0
-#define XML_TAGTYPE_INITIALIZE 1  // the <?...?> tag, or <!...(!)> tag
-#define XML_TAGTYPE_BEGIN      2  // <...> tag
-#define XML_TAGTYPE_END        3  // </...> tag
-#define XML_TAGTYPE_SELFCLOSE  4  // <... /> tag, or specific, predefined (like <br>)
-
-//Predefined self-close tags (in xmlstructs.c).
-extern const char* HTML_SelfCloseTags;
+#include "xmlstandard.h"
 
 typedef struct XMLAttrib
 {
