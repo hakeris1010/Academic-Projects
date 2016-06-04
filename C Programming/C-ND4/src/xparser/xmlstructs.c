@@ -22,6 +22,7 @@ char XML_initTag(struct XMLTag* tag)
     tag->attribCount = 0;
     tag->attribs = NULL;
     tag->tagName = NULL;
+    tag->namespaceName = NULL;
     tag->tagType = XML_TAGTYPE_UNDEFINED;
     return 0;
 }
@@ -80,11 +81,11 @@ void XML_clearTag(struct XMLTag* tag)
 
     if(tag->tagName)
         free(tag->tagName);
-    tag->tagName=NULL;
+    tag->tagName = NULL;
 
-    if(tag->tagType)
-        free(tag->tagType);
-    tag->tagType=NULL;
+    if(tag->namespaceName)
+        free(tag->namespaceName);
+    tag->namespaceName = NULL;
 }
 
 void XML_clearElement(struct XMLElement* elem)

@@ -12,6 +12,7 @@ typedef struct XMLAttrib
 typedef struct XMLTag
 {
     char* tagName;
+    char* namespaceName;
     char tagType; //can be char*
     struct XMLAttrib* attribs;
     size_t attribCount;

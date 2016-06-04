@@ -237,7 +237,7 @@ char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
 //----------------- Parser functions ------------------//
 
 //is char good in context: 0 if good, 1 if continue, 2 if error and return, 3 - special (situation defined).
-static Xps_CharProps xps_isCharGoodInContext(char c, char onName, char onAttrib, char onValue)
+static Xps_CharProps xps_getCharProperties(char c, char onName, char onAttrib, char onValue)
 {
     // firstly, set char type. By default, just this.
     char charType = XPS_CHARTYPE_DEFAULT;
@@ -273,27 +273,30 @@ static Xps_CharProps xps_isCharGoodInContext(char c, char onName, char onAttrib,
     else if(c == '?')
         charClass = XPS_CHARCLASS_XMLINIT;
 
+    //Now, set if something's startin' here.
+    char startType = XPS_STARTTYPE_DEFAULT;
+
     //Now, set our goodness.
     char goodInCont = 0;
 
-
-    /*if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
+    //by now, it won't be really useful. Keepin' 4 legacy support.
+    if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
     {
         if(!onName && !onAttrib && !onValue)
-            return (Xps_CharProps){3, XPS_CHARTYPE_ALPHANUM};
+            goodInCont = 3;
     }
     else if(c=='\r' || c=='\n' || c=='\t' || c==' ') //whitespace
     {
-        if(onName || onAttrib) return (Xps_CharProps){2, XPS_CHARTYPE_WHITESPACE};
-        if(!onValue) return (Xps_CharProps){1, XPS_CHARTYPE_WHITESPACE};
+        if(onName || onAttrib) goodInCont = 2;
+        if(!onValue) goodInCont = 1;
     }
     else //all the others
     {
         if((onName || onAttrib) && (c!='_' && c!='.' && c!='-' && c!=':' && c!='!' && c!='?')) //the last valid characters of name
-            return (Xps_CharProps){2, XPS_CHARTYPE_EXTENDED};
-    }*/
+            goodInCont = 2;
+    }
 
-    return (Xps_CharProps){0, charType, charClass}; //else good (if onValue, everything's good.
+    return (Xps_CharProps){0, charType, charClass, startType}; //else good (if onValue, everything's good.
 }
 
 // Tag getter
@@ -317,16 +320,15 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
     while( (curChar = fgetc(prs->inFile))!=EOF && !feof(prs->inFile) && !ferror(prs->inFile) && runThis ) //get char, and if not end.
     {
         //check if characted is exlusionary or invalid
-        Xps_CharProps goodness = xps_isCharGoodInContext(curChar, onName, onAttrib, onValue);
+        Xps_CharProps props = xps_getCharProperties(curChar, onName, onAttrib, onValue);
 
         if(!onInit && !onName && !onAttrib && !onValue)
         {
-            if(curChar=='<' || goodness.goodnessInContext==1)
+            if(curChar=='<' || props.charType == XPS_CHARTYPE_WHITESPACE)
                 continue;
-            /*if(goodness.charType = XPS_CHARTYPE_MLINIT)
+            if(props.charClass == XPS_CHARCLASS_HTMLDECLARATION || props.charClass == XPS_CHARCLASS_XMLINIT)
                 onInit = 1;
-            if(goodness.charType = XPS_CHARTYPE_NAMESTART)
-                onName = 1;*/
+
         }
         if(onInit && !onName && !onAttrib && !onValue)
         {
@@ -338,12 +340,12 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
         }
 
         /*
-        if(!wereChars && goodness.goodnessInContext==0)
+        if(!wereChars && props.goodnessInContext==0)
             {
                 wereChars = 1;
                 ArrayStack_push(curChar); //g00d 0n n4m3.
             }
-            else if(wereChars && (goodness.charType==XPS_CHARTYPE_WHITESPACE || curChar == '>'))
+            else if(wereChars && (props.charType==XPS_CHARTYPE_WHITESPACE || curChar == '>'))
             {
                 onName = 0;
                 onAttrib = 1; //name end, expect attrib.
@@ -351,7 +353,7 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
                 hstr_addToString( &(curTag.tagName), tmpString.arr ); //add this str to name.
                 ArrayStack_clear( &tmpString );
             }
-            else if(wereChars && goodness.goodnessInContext == 2) //maybe will be pushed outta here.
+            else if(wereChars && props.goodnessInContext == 2) //maybe will be pushed outta here.
             {
                 xps_stat_ErrCode = Xps_Err_BadSyntax;
                 return 2;

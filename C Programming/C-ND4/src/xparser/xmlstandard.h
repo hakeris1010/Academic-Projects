@@ -12,8 +12,10 @@
 //---------------------      XML Standard stuff      ---------------------//
 //Predefined self-close tags (in xmlstructs.c).
 extern const char* HTML_SelfCloseTags;
-//Valid chars (not yet impl'd)
+//Valid chars
 extern const char* XML_ValidNameChars;
+//Startin' chars
+extern const char* XML_NameStartChars;
 //Future (near or far).
 
 //--------------------- XParser extended definitions ---------------------//
@@ -37,6 +39,13 @@ extern const char* XML_ValidNameChars;
 #define XPS_CHARCLASS_HTMLDECLARATION 7  // !
 #define XPS_CHARCLASS_EXTENDED        8  // chars in the interval [127-255] and [0-32]
 
+//Start types
+#define XPS_STARTTYPE_DEFAULT  1
+#define XPS_STARTTYPE_INIT     2
+#define XPS_STARTTYPE_NAME     4
+#define XPS_STARTTYPE_TAG      8
+#define XPS_STARTTYPE_VALUE    16
+
 //structure o'kawaiidesu
 
 typedef struct Xps_CharProps
@@ -44,6 +53,7 @@ typedef struct Xps_CharProps
     char goodnessInContext;
     char charType;
     char charClass;
+    char startType;
 } Xps_CharProps;
 
 #endif // XMLSTANDARD_H_INCLUDED

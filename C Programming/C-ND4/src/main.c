@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "interface.h"
 #include "htools/logger.h"
 #include "htools/hfun.h"
@@ -17,16 +18,20 @@ char* charToString(const char ch)
 
 void playground1()
 {
-    ArrayStack nuStak = ArrayStack_create(1, ARRAYSTACK_DEFAULT_PADDING, 1);
+    char* bam = hstr_makeNewString(0, "[a-c]|g");
+    char g = 'a';
 
-    ArrayStack_pushArray(&nuStak, "Neko nyaa~", 0);
-    printf("String from stack: \"%s\"\n", nuStak.arr);
+    printf("\nIs \'%c\' in: \"%s\" ? Ans: %d\n", g, bam, hfun_isCharInSpecifieds(g, bam, '|', '[', ']', '-', '#', 'x') );
 
-    ArrayStack_push(&nuStak, 'c');
+    free(bam);
+
+    /*ArrayStack nuStak = ArrayStack_create(1, ARRAYSTACK_DEFAULT_PADDING, 1);
+
+    ArrayStack_pushArray(&nuStak, "Kawaii|Neko|Desu|Chan~", 0);
     printf("String from stack: \"%s\"\n", nuStak.arr);
 
     ArrayStack_clear(&nuStak, NULL);
-    printf("String from stack: \"%s\"\n", nuStak.arr);
+    //printf("String from stack: \"%s\"\n", nuStak.arr);*/
 
     //ArrayStack_Show(nuStak, 1, 0, 0, charToString ,stdout);
 }
@@ -40,10 +45,10 @@ int main()
     hlogf("C Test no. %d\n", 10);
     hlogf("Kawaii miku-chan~~~\n\n");
 
-    //playground1();
+    playground1();
 
-    XParser newParser;
-    xps_init(&newParser, 1, 1);
+    //XParser newParser;
+    //xps_init(&newParser, 1, 1);
 
     //hlog_closeLogFile();
 
