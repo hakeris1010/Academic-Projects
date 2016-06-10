@@ -1,7 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include "logger.h"
+#include "hstring.h"
 #include "hfun.h"
+
+#define HFUN_DEBUG_ISSTRINGINSPECIFIEDS 0
 
 void hfun_getFileExtension(const char* fileName, char* extBuff, size_t buffSize)
 {
@@ -54,14 +59,17 @@ static void hfun_priv_decodifyString(char* str, char codeStarter, char codeHexSp
             char ch = hfun_codeToChar(i, codeStarter, codeHexSpec);
             if(ch != -1)
             {
-                hstr_eraseCharsFromString(tmpStr, i-tmpStr, i-tmpStr);
+                hstr_eraseCharsFromString(tmpStr, i-tmpStr, i-tmpStr+3);
                 hstr_insertCharToString(&tmpStr, ch, i-tmpStr);
+                i+=3;
             }
         }
     }
     strncpy(str, tmpStr, stLen);
     str[stLen] = '\0';
 }
+
+// FIXME : Bug with strtok, being called second time on another string in this function.
 
 static char hfun_priv_parseInterval_isStringIn(const char* interv, const char* thisStr, char intOpener, char intCloser, char intSepar, char codeStarter, char codeHexSpec)
 {
@@ -71,13 +79,14 @@ static char hfun_priv_parseInterval_isStringIn(const char* interv, const char* t
     const char delims[] = {intOpener, intCloser, intSepar};
     char* inter1 = hstr_makeNewString(0, interv);
 
-    char* tok1 = strtok(inter1, delims); //start and end tokens
+    char* tok1 = strtok(inter1, delims); //start and end tokens // FIX THIS ! (Strtok's are bad here)
     char* tok2 = strtok(NULL, delims);
     if(!tok1 || !tok2) //if one of them's NULL
     {
         free(inter1);
         return 0;
     }
+
     //decode
     hfun_priv_decodifyString(tok1, codeStarter, codeHexSpec);
     hfun_priv_decodifyString(tok2, codeStarter, codeHexSpec);
@@ -87,16 +96,16 @@ static char hfun_priv_parseInterval_isStringIn(const char* interv, const char* t
         return 0;
     }
     //now, actual comparation.
-    char retval = (( strcmp(thisStr, tok1) > 0 && strcmp(thisStr, tok2) < 0 ) ? 1 : 0); //true if thisStr is between tok1 and tok2.
+    char retval = (( strcmp(thisStr, tok1) >= 0 && strcmp(thisStr, tok2) <= 0 ) ? 1 : 0); //true if thisStr is between tok1 and tok2.
 
     free(inter1); //free this.
     return retval;
 }
 
-//FIXME: Bug with intervals! - unknown reason.
 char hfun_isStringInSpecifieds(const char* str, const char* valids, char separator, char intervalOpener, char intervalCloser, char intervalSeparator, char codeStarter, char codeHexSpec)
 {
     if(!valids) return 0;
+    hlog_setTurnOnLog( HFUN_DEBUG_ISSTRINGINSPECIFIEDS );
     char last = 0, onInter = 0, onCode = 0, retval = 0;
     char* valids1 = hstr_makeNewString(0, valids);
 
@@ -109,11 +118,14 @@ char hfun_isStringInSpecifieds(const char* str, const char* valids, char separat
         if(tok[0] == intervalOpener) //woot, interval found! Let's parse it!
         {
             hlogf("[hfun_stinspec]: found intervalopener. calling parseInterval()...\n");
+            char* tmptok = strtok( NULL, delim ); //get next token. //Remove this after removing strtok()'s from interParser.
             if( hfun_priv_parseInterval_isStringIn(tok, str, intervalOpener, intervalCloser, intervalSeparator, codeStarter, codeHexSpec) ) //w00t! Found it in dis interval!
             {
                 retval = 1; //1 means true, it means found.
                 break;
             }
+            tok = tmptok;
+            continue;
         }
         else // if not interval.
         {
@@ -125,9 +137,10 @@ char hfun_isStringInSpecifieds(const char* str, const char* valids, char separat
                 break;
             }
         }
-        tok = strtok(NULL, delim); //get next token.
+        tok = strtok( NULL, delim ); //get next token.
     }
     free(valids1);
+    hlog_setTurnOnLog( 1 ); //remove when debugs.h are added and using in every func!
     return retval; //string is not in specifieds
 }
 
