@@ -9,6 +9,7 @@
 #define HFUN_SP_DEF_CODEHEX    'x'
 
 char hfun_pushToArray(void** arr, size_t* elemCount, size_t oneElemSize, void* newElem);
+char hfun_isCharInString(char c, const char* str);
 void hfun_getFileExtension(const char* fileName, char* extBuff, size_t buffSize);
 char hfun_isCharInSpecifieds(char c, const char* valids, char separator, char intervalOpener, char intervalCloser, char intervalSeparator, char codeStarter, char codeHexSpec);
 char hfun_isStringInSpecifieds(const char* str, const char* valids, char separator, char intervalOpener, char intervalCloser, char intervalSeparator, char codeStarter, char codeHexSpec);

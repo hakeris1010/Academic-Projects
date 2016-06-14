@@ -19,13 +19,13 @@ char* charToString(const char ch)
 void playground1()
 {
     printf("Testing on Char:\n");
-    const char* bam = hstr_makeNewString(0, ":|7|g|t");//[#x61-#099]
-    char g = 't';
+    const char* bam = hstr_makeNewString(0, "[A-B]|g");
+    char g = 'C';
     printf("Is \'%c\' in: \"%s\" ? Ans: %d\n", g, bam, hfun_isCharInSpecifieds(g, bam, '|', '[', ']', '-', '#', 'x') );
 
     printf("\nTesting on Const String:\n");
-    const char* bam1 = hstr_makeNewString(0, "[#x61bc-#099ba]|google|uauaua");
-    const char* srch = "google";
+    const char* bam1 = hstr_makeNewString(0, "a|[#x61bc-#099ba]|google|uauaua");
+    const char* srch = "uauaua";
     printf("Is \'%s\' in: \"%s\" ? Ans: %d\n", srch, bam1, hfun_isStringInSpecifieds(srch, bam1, '|', '[', ']', '-', '#', 'x') );
 
     /*ArrayStack nuStak = ArrayStack_create(1, ARRAYSTACK_DEFAULT_PADDING, 1);

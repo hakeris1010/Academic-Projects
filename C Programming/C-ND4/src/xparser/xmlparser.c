@@ -17,6 +17,11 @@
 #define XPARSE_ACTION_PARSING_INPUT 53
 #define XPARSE_ACTION_OUTPUTTING    54
 
+#define XPS_GOODNESS_GOOD      0
+#define XPS_GOODNESS_CONTINUE  1
+#define XPS_GOODNESS_BREAK     2
+#define XPS_GOODNESS_SPECIAL   3
+
 // Properties
 #define XPARSE_DEFAULT_READ_BLOCK_SIZE         1024 // by default, read 1 kilobyte.
 #define XPARSE_DEFAULT_MAX_ELEMENTS_ON_BUFFER  8    //use either this or next, or both.
@@ -236,7 +241,7 @@ char xps_outputToFile(XParser* prs, size_t elemCount, FILE* inpStream)
 
 //----------------- Parser functions ------------------//
 
-//is char good in context: 0 if good, 1 if continue, 2 if error and return, 3 - special (situation defined).
+//get properties.
 static Xps_CharProps xps_getCharProperties(char c, char onName, char onAttrib, char onValue)
 {
     // firstly, set char type. By default, just this.
@@ -253,7 +258,7 @@ static Xps_CharProps xps_getCharProperties(char c, char onName, char onAttrib, c
     else   // all the others in a byte.
         charType = XPS_CHARTYPE_EXTENDED;
 
-    // now set our char's class. By default, standard.
+    // Now set our char's class. By default, standard.
     char charClass = XPS_CHARCLASS_STANDARD;
 
     if(charType == XPS_CHARTYPE_EXTENDED)
@@ -273,14 +278,24 @@ static Xps_CharProps xps_getCharProperties(char c, char onName, char onAttrib, c
     else if(c == '?')
         charClass = XPS_CHARCLASS_XMLINIT;
 
-    //Now, set if something's startin' here.
+    // Now, set if something's startin' here.
     char startType = XPS_STARTTYPE_DEFAULT;
 
-    //Now, set our goodness.
-    char goodInCont = 0;
+    if( hfun_isCharInSpecifieds(c, XML_NameStartChars, '|', '[', ']', '-', '#', 'x') )
+        startType = XPS_STARTTYPE_NAME;
+    else if(charClass == XPS_CHARCLASS_QUOTES) //not very useful - can use just charClass.
+        startType = XPS_STARTTYPE_VALUE;
 
-    //by now, it won't be really useful. Keepin' 4 legacy support.
-    if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
+    //Now, set our goodness.
+    //: 0 if good, 1 if continue, 2 if error and return, 3 - special (situation defined).
+    char goodInCont = XPS_GOODNESS_GOOD;
+
+    //check if onName and valid name char.
+    if( (onName || onAttrib) && !hfun_isCharInSpecifieds(c, XML_ValidNameChars, '|', '[', ']', '-', '#', 'x') )
+        goodInCont = XPS_GOODNESS_BREAK;
+
+    // 4 legacy support.
+    /*if((c >= '0' && c <= '9') || (c >= 'a' && c <='z') || (c >= 'A' && c <= 'Z')) //alphanumerics
     {
         if(!onName && !onAttrib && !onValue)
             goodInCont = 3;
@@ -294,9 +309,9 @@ static Xps_CharProps xps_getCharProperties(char c, char onName, char onAttrib, c
     {
         if((onName || onAttrib) && (c!='_' && c!='.' && c!='-' && c!=':' && c!='!' && c!='?')) //the last valid characters of name
             goodInCont = 2;
-    }
+    }*/
 
-    return (Xps_CharProps){0, charType, charClass, startType}; //else good (if onValue, everything's good.
+    return (Xps_CharProps){goodInCont, charType, charClass, startType}; //else good (if onValue, everything's good.
 }
 
 // Tag getter
@@ -328,39 +343,29 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
                 continue;
             if(props.charClass == XPS_CHARCLASS_HTMLDECLARATION || props.charClass == XPS_CHARCLASS_XMLINIT)
                 onInit = 1;
-
+            //set if name's starting.
         }
         if(onInit && !onName && !onAttrib && !onValue)
         {
-
+            if(props.charClass == XPS_CHARCLASS_HTMLDECLARATION || props.charClass == XPS_CHARCLASS_XMLINIT)
+                curTag->tagType = XML_TAGTYPE_INITIALIZE;
+            else if(props.charClass == XPS_CHARCLASS_END)
+                curTag->tagType = XML_TAGTYPE_END;
+            onName = 1;
+            onInit = 0;
+            continue;
         }
         if(!onInit && onName && !onAttrib && !onValue)
         {
-
-        }
-
-        /*
-        if(!wereChars && props.goodnessInContext==0)
-            {
-                wereChars = 1;
-                ArrayStack_push(curChar); //g00d 0n n4m3.
-            }
-            else if(wereChars && (props.charType==XPS_CHARTYPE_WHITESPACE || curChar == '>'))
+            if(props.charType != XPS_CHARTYPE_WHITESPACE)
             {
                 onName = 0;
-                onAttrib = 1; //name end, expect attrib.
-
-                hstr_addToString( &(curTag.tagName), tmpString.arr ); //add this str to name.
-                ArrayStack_clear( &tmpString );
+                onAttrib = 1;
+                continue;
             }
-            else if(wereChars && props.goodnessInContext == 2) //maybe will be pushed outta here.
-            {
-                xps_stat_ErrCode = Xps_Err_BadSyntax;
-                return 2;
-            }
-        */
-
-        //last check - if err0r.
+            //add char to name string.
+        }
+        //more possibillities (onAttrib and onValue)
     }
     return 0;
 }

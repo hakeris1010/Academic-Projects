@@ -24,6 +24,15 @@ void hfun_getFileExtension(const char* fileName, char* extBuff, size_t buffSize)
     extBuff[i - extStart] = '\0';
 }
 
+char hfun_isCharInString(char c, const char* str)
+{
+    if(!str || !(*str))
+        return 0;
+    while( (*str)!='\0' && (*str) != c ) ;
+
+    return ( (*str)==c ? 1 : 0 );
+}
+
 //------------ string specifieds family ------------//
 static char hfun_priv_isHexOrDec(char ch, char isHex)
 {
@@ -69,34 +78,47 @@ static void hfun_priv_decodifyString(char* str, char codeStarter, char codeHexSp
     str[stLen] = '\0';
 }
 
-// FIXME : Bug with strtok, being called second time on another string in this function.
-
 static char hfun_priv_parseInterval_isStringIn(const char* interv, const char* thisStr, char intOpener, char intCloser, char intSepar, char codeStarter, char codeHexSpec)
 {
     if((!interv || !thisStr) ? 1 : (strlen(interv) < 5 || (*thisStr)=='\0' || interv[0] != intOpener))
         return 0;
     //firstly, tokenize using closer, opener, and separ.
-    const char delims[] = {intOpener, intCloser, intSepar};
+    const char delims[] = {intOpener, intCloser, intSepar, 0};
     char* inter1 = hstr_makeNewString(0, interv);
 
-    char* tok1 = strtok(inter1, delims); //start and end tokens // FIX THIS ! (Strtok's are bad here)
-    char* tok2 = strtok(NULL, delims);
-    if(!tok1 || !tok2) //if one of them's NULL
+    char* intBegEnd[2] = {NULL, NULL};
+    char* tmpp = inter1;
+    char index = 0;
+    size_t intSiz = strlen( inter1 );
+    do
+    {
+        if( strchr(delims, *tmpp) )
+        {
+            (*tmpp)='\0';
+            if(*(tmpp+1) && index < 2)
+            {
+                intBegEnd[index]= tmpp+1;
+                index++;
+            }
+        }
+    } while( *(++tmpp)!='\0' && tmpp < inter1 + intSiz );
+
+    if(!intBegEnd[0] || !intBegEnd[1]) //if one of them's NULL
     {
         free(inter1);
         return 0;
     }
 
     //decode
-    hfun_priv_decodifyString(tok1, codeStarter, codeHexSpec);
-    hfun_priv_decodifyString(tok2, codeStarter, codeHexSpec);
-    if( strcmp(tok1, tok2) > 0 ) //if first is bigger than last (wrong interval).
+    hfun_priv_decodifyString(intBegEnd[0], codeStarter, codeHexSpec);
+    hfun_priv_decodifyString(intBegEnd[1], codeStarter, codeHexSpec);
+    if( strcmp(intBegEnd[0], intBegEnd[1]) > 0 ) //if first is bigger than last (wrong interval).
     {
         free(inter1);
         return 0;
     }
     //now, actual comparation.
-    char retval = (( strcmp(thisStr, tok1) >= 0 && strcmp(thisStr, tok2) <= 0 ) ? 1 : 0); //true if thisStr is between tok1 and tok2.
+    char retval = (( strcmp(thisStr, intBegEnd[0]) >= 0 && strcmp(thisStr, intBegEnd[1]) <= 0 ) ? 1 : 0); //true if thisStr is between intBegEnd[0] and intBegEnd[1].
 
     free(inter1); //free this.
     return retval;
@@ -118,14 +140,11 @@ char hfun_isStringInSpecifieds(const char* str, const char* valids, char separat
         if(tok[0] == intervalOpener) //woot, interval found! Let's parse it!
         {
             hlogf("[hfun_stinspec]: found intervalopener. calling parseInterval()...\n");
-            char* tmptok = strtok( NULL, delim ); //get next token. //Remove this after removing strtok()'s from interParser.
             if( hfun_priv_parseInterval_isStringIn(tok, str, intervalOpener, intervalCloser, intervalSeparator, codeStarter, codeHexSpec) ) //w00t! Found it in dis interval!
             {
                 retval = 1; //1 means true, it means found.
                 break;
             }
-            tok = tmptok;
-            continue;
         }
         else // if not interval.
         {
