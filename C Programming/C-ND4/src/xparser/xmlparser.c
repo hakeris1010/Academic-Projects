@@ -283,8 +283,10 @@ static Xps_CharProps xps_getCharProperties(char c, char onName, char onAttrib, c
 
     if( hfun_isCharInSpecifieds(c, XML_NameStartChars, '|', '[', ']', '-', '#', 'x') )
         startType = XPS_STARTTYPE_NAME;
-    else if(charClass == XPS_CHARCLASS_QUOTES) //not very useful - can use just charClass.
+    else if(charClass == XPS_CHARCLASS_QUOTES)
         startType = XPS_STARTTYPE_VALUE;
+    else if(charClass == XPS_CHARCLASS_HTMLDECLARATION || charClass == XPS_CHARCLASS_XMLINIT || charClass == XPS_CHARCLASS_END)
+        startType = XPS_STARTTYPE_INIT;
 
     //Now, set our goodness.
     //: 0 if good, 1 if continue, 2 if error and return, 3 - special (situation defined).
@@ -328,24 +330,47 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
         fseek(prs->inFile, fseekPosition, SEEK_CUR);
     }
 
-    char onInit = 0, onName = 0, onAttrib = 0, onValue = 0, runThis = 1, wereChars = 0;
+    char onInit = 0, onName = 0, onAttrib = 0, onValue = 0, runThis = 1, wereChars = 0, retval = 0, afterLygu = 0, afterEndCond;
     char curChar = 0; //our current char.
     ArrayStack tmpString = ArrayStack_create(1, ARRAYSTACK_DEFAULT_PADDING, 1); //our ArrayStack, which will be used as string.
+    XMLAttrib tmpAttrib = XML_getEmptyAttrib(); //temporary attrib, we'll fill it and clear it in the process.
 
     while( (curChar = fgetc(prs->inFile))!=EOF && !feof(prs->inFile) && !ferror(prs->inFile) && runThis ) //get char, and if not end.
     {
-        //check if characted is exlusionary or invalid
+        //get character's class, type, and goodness.
         Xps_CharProps props = xps_getCharProperties(curChar, onName, onAttrib, onValue);
+
+        //whitespace handler (only name and attribName).
+        if(props.charType == XPS_CHARTYPE_WHITESPACE && (onName || onAttrib || (onValue && !wereChars)))
+        {
+            if(wereChars && tmpString.siz > 0) //may be errors when wereChars is in onValue context (valueStarted)
+            {
+                if(onName)
+                    curTag->tagName = hstr_makeNewString(0, (char*)tmpString.arr); //assign name from our tmpStr.
+                if(onAttrib)
+                    tmpAttrib.name = hstr_makeNewString(0, (char*)tmpString.arr); //assign attribName from our tmpStr.
+
+                ArrayStack_clear( &tmpString, NULL );
+
+                onName = 0;
+                onAttrib = !onAttrib;
+                onValue = (onAttrib ? 1 : 0);
+                wereChars = 0;
+            }
+            continue; //if whitespace, continue ALWAYS.
+        }
 
         if(!onInit && !onName && !onAttrib && !onValue)
         {
             if(curChar=='<' || props.charType == XPS_CHARTYPE_WHITESPACE)
                 continue;
-            if(props.charClass == XPS_CHARCLASS_HTMLDECLARATION || props.charClass == XPS_CHARCLASS_XMLINIT)
+            if(props.startType == XPS_STARTTYPE_INIT)
                 onInit = 1;
             //set if name's starting.
+            else if(props.startType == XPS_STARTTYPE_NAME)
+                onName = 1;
         }
-        if(onInit && !onName && !onAttrib && !onValue)
+        if(onInit && !onName && !onAttrib && !onValue) //init phase.
         {
             if(props.charClass == XPS_CHARCLASS_HTMLDECLARATION || props.charClass == XPS_CHARCLASS_XMLINIT)
                 curTag->tagType = XML_TAGTYPE_INITIALIZE;
@@ -355,19 +380,57 @@ char xps_getTagOnPosition(XParser* prs, XMLTag* curTag, int fseekPosition, char 
             onInit = 0;
             continue;
         }
-        if(!onInit && onName && !onAttrib && !onValue)
-        {
-            if(props.charType != XPS_CHARTYPE_WHITESPACE)
+        if((!onInit && (onName || onAttrib) && !onValue) && props.goodnessInContext == XPS_GOODNESS_GOOD) //name or attrName.
+        {   //if we're onName or onAttrib, let's just push name.
+            //Check for special conditions which happen only there: tag end and self-close /.
+            if(curChar == '>' || curChar == '/')
             {
-                onName = 0;
-                onAttrib = 1;
+
+            }
+            if(props.goodnessInContext == XPS_GOODNESS_GOOD)
+            {
+                wereChars = 1;
+                ArrayStack_push( &tmpString, curChar ); //add char to name string.
+            }
+        }
+
+        if(!onInit && !onName && !onAttrib && onValue) //on value, or just before value.
+        {
+            if(!wereChars) //there wereChars means if value is started (after quotes)
+            {
+                if(curChar == '=') afterLygu++;
+                else if(afterLygu==1 && props.charClass == XPS_CHARCLASS_QUOTES) //value starts here!
+                    wereChars = 1;
+                else
+                    goto __error; //end our loop properly.
                 continue;
             }
-            //add char to name string.
+            else if(props.charClass == XPS_CHARCLASS_QUOTES && tmpString.siz > 0) //value end.
+            {
+                tmpAttrib.value = hstr_makeNewString(0, tmpString.arr);
+                ArrayStack_clear( &tmpString, NULL ); //clear our tempString, and then add this attrib to tag.
+
+                hfun_pushToArray(&(curTag->attribs), &(curTag->attribCount), sizeof(XMLAttrib), &tmpAttrib);
+
+                onValue   = 0; //defaulting vars
+                onAttrib  = 1; //move 2 n3xt attrib.
+                wereChars = 0;
+                afterLygu = 0;
+                continue;
+            }
+            else //add char to value string.
+                ArrayStack_push( &tmpString, curChar );
         }
-        //more possibillities (onAttrib and onValue)
+
+        if(props.goodnessInContext == XPS_GOODNESS_BREAK) //if bad, and need to break pr0cess.
+        {                               //Do it at end, after all 'continue's. May cause ERRORS !!!
+            __error:
+            xps_stat_ErrCode = Xps_Err_BadSyntax;
+            retval = 2;
+            break;
+        }
     }
-    return 0;
+    return retval;
 }
 
 char xps_startParsing(XParser* prs, char parseMode, size_t parseElemCount, FILE* inpStream)

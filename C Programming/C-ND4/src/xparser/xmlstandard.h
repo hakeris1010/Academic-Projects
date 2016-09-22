@@ -37,7 +37,8 @@ extern const char* XML_NameStartChars;
 #define XPS_CHARCLASS_QUOTES          5  // " "
 #define XPS_CHARCLASS_NAMESPACE       6  // :
 #define XPS_CHARCLASS_HTMLDECLARATION 7  // !
-#define XPS_CHARCLASS_EXTENDED        8  // chars in the interval [127-255] and [0-32]
+#define XPS_CHARCLASS_VALUESTART      8  // =
+#define XPS_CHARCLASS_EXTENDED        9  // chars in the interval [127-255] and [0-32]
 
 //Start types
 #define XPS_STARTTYPE_DEFAULT  1
