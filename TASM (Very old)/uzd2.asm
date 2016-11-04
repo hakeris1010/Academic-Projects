@@ -1,7 +1,9 @@
 ; Programa: Nr. 1
 ; Uzduoties salyga: 
 ; Atliko: Kestutis Dirma
-; Versija: 0.3 devel
+; Versija: 0.4 devel
+
+; TODOS: buferio ivedimas is stdin.
 
 .model small
 .stack 100h
@@ -27,6 +29,7 @@
 	zodz   dw 0
 	mazrai dw 0
 	didrai dw 0
+    statflags db 04h ; flagai, nurodantys kokioje busenoje baigem bloka (buferi)
 	; ---
     
     filename db 254 dup(0), '$'      ; failo vardo saugojimo buferis. (MAX_PATH=260)
@@ -66,10 +69,11 @@ printNumberDecimal: ; atspausdina skaiciu desimtainiu pavidalu. Parametras: ax.
 ret
 
 examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t.t.
-    xor cl, cl                  ; cl'as - flagai. Bitai is desines:
+    mov cl, [statflags]         ; cl'as - flagai. Dabar paimam busena is paskutinio bloko.
+                                ; Bitai is desines:
                                 ; 8 - didesnis uz 1
                                 ; 7 - mazesnis uz 2
-                                ; 6 - pask.simb. raide
+                                ; 6 - pask.simb. tarpas
                                 ; 5 - simb. yra tarp 'A' ir 'Z'
                                 ; 4 - simb. yra tarp 'a' ir 'z'
     ;mov ah, 09h
@@ -91,14 +95,9 @@ examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t
         ; Tikrinam ar mazoji raide.
         cmp dl, 'a'
         jnge la3
-        ;or cl, 01h ; 00000001
-        ;la1:
         cmp dl, 'z'
         jnle la3
-        ;or cl, 02h ; 00000010
-        ;la2:
-        ;test cl, 03h  ; patikrinam ar bitai 8 ir 7 yra 1.
-        ;jne la3
+        
         or cl, 10h    ; 00010000 - jis yra mazoji raide.
         
         mov ax, word ptr [mazrai] ; padidinam mazuju raidziu skaiciu.
@@ -109,14 +108,9 @@ examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t
         ; Tikrinam ar didzioji raide.
         cmp dl, 'A'
         jnge la6
-        ;or cl, 01h ; 00000001
-        ;la4:
         cmp dl, 'Z'
         jnle la6
-        ;or cl, 02h ; 00000010
-        ;la5:
-        ;test cl, 03h  ; patikrinam ar bitai 8 ir 7 yra 1.
-        ;jne la6
+        
         or cl, 08h    ; 00001000 - jis yra didzioji raide.
         
         mov ax, word ptr [didrai] ; padidinam didz.raidziu skaiciu.
@@ -124,25 +118,30 @@ examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t
         mov word ptr [didrai], ax 
         la6:
         
-        ; Nustatom ar zodzio dalis (ne tarpas).
+        ; Nustatom ar tarpas
         cmp dl, 20h     ; tarpas
-        jle la7         ; jei maziau arba lygu - tai whitespace charai. Sokam prie tarpo.
-                        ; Jeigu ne, nustatom kad ne tarpas
-        or cl, 04h      ; 00000100 - tai ne tarpas.
+        jg la7          ; Jei daugiau uz tarpa, sokam prie ne tarpu.
+                        ; jei maziau arba lygu - tai whitespace char'ai (tarpai)
+        or cl, 04h      ; 00000100 - tai  tarpas.
         jmp la8
         
-        la7:  ; Jeigu tarpas.
-        test cl, 04h    ; tikrinam ar pask. baitas buvo ne tarpas.
-        jz la8          ; jeigu 0, tai buvo tarpas, ir sokam prie pabaigos.
-        
-        mov ax, word ptr [zodz] ; jeigu pask. baitas buvo ne tarpas, ivykdom zodziu skaiciaus padidinima.
+        la7:  ; Jeigu ne tarpas.
+        test cl, 04h    ; tikrinam ar pask. baitas buvo tarpas.
+        jz la9          ; jeigu 0, tai buvo ne tarpas, ir dabar ne tarpas, tad sokam prie pabaigos.
+                        ; jeigu 1, tai pask. baitas buvo tarpas, bet dabar ne, todel zodzio pradzia.
+        mov ax, [zodz]  ; Ivykdom zodziu skaiciaus padidinima.
         inc ax
-        mov word ptr [zodz], ax
+        mov [zodz], ax
         
-        la8:  ; Jeigu ne tarpas, tai tesiam cikla.
+        la9:            ; Ne tarpas, tad tarpo flaga nustatom 0. 
+        and cl, 0FBh     ; 1111 1011
+        
+        la8:  ; tesiam cikla.
         inc si
         cmp si, bx              ; patikrinam ar dar ne buferio pabaiga
     jnz loopbuf1                ; sukam cikla kol cx'as ne 0.
+    
+    mov [statflags], cl         ; ikeliam cl'a i atminti ir pasiruosiam sekanciam blokui.
 ret
 
 startReadingFile: ; Failo skaitymo f-ja. 
@@ -196,6 +195,7 @@ startReadingFile: ; Failo skaitymo f-ja.
     mov word ptr [zodz], 0
     mov word ptr [mazrai], 0
     mov word ptr [didrai], 0
+    mov byte ptr [statflags], 04h ; default'e stovim ant whitespace'o.
 ;========  =========
     
     clc                     ; isvalom carry flag'a (Ten bus nustatoma klaida).
