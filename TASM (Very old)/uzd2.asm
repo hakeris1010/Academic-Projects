@@ -1,9 +1,9 @@
 ; Programa: Nr. 1
 ; Uzduoties salyga: 
 ; Atliko: Kestutis Dirma
-; Versija: 0.4 devel
+; Versija: 1.0 
 
-; TODOS: buferio ivedimas is stdin.
+; Viskas veikia kaip turi.
 
 .model small
 .stack 100h
@@ -30,6 +30,7 @@
 	mazrai dw 0
 	didrai dw 0
     statflags db 04h ; flagai, nurodantys kokioje busenoje baigem bloka (buferi)
+    filesread dw 0   ; kiek failu perskaitem.
 	; ---
     
     filename db 254 dup(0), '$'      ; failo vardo saugojimo buferis. (MAX_PATH=260)
@@ -37,7 +38,7 @@
 	filestart  dw ?
     filehandle dw ?
 	
-    fileReadBuff db 0, 0, 255 dup (32), '$' ; failo skaitymo duomenu bufas. Dydis - 255, 1 baitas - kiek perskaitem.
+    fileReadBuff db 0, 0, 255 dup (0), '$' ; failo skaitymo duomenu bufas. Dydis - 255, 1 baitas - kiek perskaitem.
     fileReadBuffLen equ 255
 .code
 jmp start
@@ -149,13 +150,27 @@ startReadingFile: ; Failo skaitymo f-ja.
 	;cmp bx, [filestart] ; patikrinam ar naujas failvardis nera tuscias (sutampa pradzia su dab.pozicija)
     
     cmp byte ptr [filename], 0
-	jz er1              ; jei 0 arba tarpas, sokam i pabaiga.
+	jz er1              
+    cmp byte ptr [filename], 20h ; jei 0 arba tarpas, sokam i pabaiga
+    jz er1
     
-    cmp byte ptr [filename], 20h
-	jnz er1              ; jei taip, sokam i pabaiga.
-    jmp endReadingFile
+    ; Patikrinam ar pagalbos paramas (/?)
+    cmp byte ptr [filename], '/'
+    jnz startwork1
+    cmp byte ptr [filename + 1], '?'
+    jnz startwork1
+        
+    lea dx, help    ; atspausdinam pagalbos pran. ir baigiam.
+    mov ah, 09h
+    int 21h
+    jmp programEnd
+    
+    ;jmp startwork1      ; jei viskas gerai, sokam i darbo pradzia.
+    
     er1:
+    jmp badFileNameErr  ; jei blogas failneimas.
     
+    startwork1:    
     mov byte ptr [di + offset filename], '$' ; paruosiam failvardi spausdinimui - pabaigoje '$'
 ; === printing info stuff ===
     lea dx, endline    ; atspausdinam eil. pabaiga
@@ -265,7 +280,22 @@ startReadingFile: ; Failo skaitymo f-ja.
     jmp endReadingFile      ; kai baigiam skaityt, persokam i f-jos pabaiga.
 ;======== Failo uzdarymas pab. ==========
     
-	error1: ; klaidos informacijos atspausdinimas.
+    filend1:
+    lea dx, endline    ; atspausdinam eil. pabaiga
+    mov ah, 09h
+    int 21h
+    ;lea dx, filendstr
+    ;mov ah, 09h
+    ;int 21h
+    
+    mov ax, [filesread]
+    inc ax
+    mov [filesread], ax ; padidinam skaiciu perskaitytu failu.
+    
+    call printStats ; Atspausdinam failo statistinius duomenis
+    jmp endReadingFile
+    
+    error1: ; klaidos informacijos atspausdinimas.
     lea dx, nofile
     mov ah, 09h
     int 21h
@@ -275,15 +305,8 @@ startReadingFile: ; Failo skaitymo f-ja.
     int 21h
     jmp endReadingFile
     
-    filend1:
-    lea dx, endline    ; atspausdinam eil. pabaiga
-    mov ah, 09h
-    int 21h
-    lea dx, filendstr
-    mov ah, 09h
-    int 21h
-    
-    call printStats ; Atspausdinam failo statistinius duomenis
+    badFileNameErr:
+    mov ax, 0FFFFh  ; blogas failneimas
 	
 	endReadingFile:
 	;mov ax, bx
@@ -291,14 +314,14 @@ startReadingFile: ; Failo skaitymo f-ja.
 	;mov [filestart], di
     ;lea di, filename        ; DI vel ziures i failvardzio pradzia - rasysim is naujo.
     ;dec di                  ; atimam 1 nes paskui pridesim.
-    mov di, -1      ; isnulinam di'ka
+    mov di, -1      ; isnulinam di'ka    
 ret
 
 ; Print file statistics:
 printStats:
-    lea dx, endline
-    mov ah, 09h
-    int 21h
+    ;lea dx, endline
+    ;mov ah, 09h
+    ;int 21h
     
     lea dx, rezultsimb
     mov ah, 09h
@@ -338,36 +361,84 @@ start:
     
     mov bx, 81h          ; bx'as - paramo pradzia.
     xor di, di
+        
 	
 	tonext:
-	mov dl, es:[bx]      ; i dl'a ikeliam simboli is extended sego (parametro simboli)
-	cmp dl, 0dh
-	jz  loopend			 ; patikrinam ar dar nesibaige, jei taip, baigiam cikliuka
+        mov dl, es:[bx]      ; i dl'a ikeliam simboli is extended sego (parametro simboli)
+        cmp dl, 0dh
+        jz  loopend			 ; patikrinam ar dar nesibaige, jei taip, baigiam cikliuka
 
-	;mov ah, 02h
-	;int 21h				 ; atspausdinam simboli
+        ;mov ah, 02h
+        ;int 21h				 ; atspausdinam simboli
     
-    mov byte ptr [di + offset filename], dl ; i failo vardo pozicija di ikeliam dab. simboli.
+        mov byte ptr [di + offset filename], dl ; i failo vardo pozicija di ikeliam dab. simboli.
 	
-    cmp dl, 20h			 ; patikrinam ar ne tarpas, jei taip, pradedam failo skaitynes.
-	jnz after1
+        cmp dl, 20h			 ; patikrinam ar ne tarpas, jei taip, pradedam failo skaitynes.
+        jnz after1
+        
+        push bx              ; idedam bx'a i steka, nes funkcijoje bx'as bus naud0jamas.
+        call startReadingFile 
+        pop bx
     
-    push bx              ; idedam bx'a i steka, nes funkcijoje bx'as bus naud0jamas.
-	call startReadingFile 
-    pop bx
-    
-	after1:
-    inc bx
-    inc di
+        after1:
+        inc bx
+        inc di
 	jmp tonext			 ; tesiam cikla.
-	
-	loopend:
+    
+	loopend:    
 	call startReadingFile ; automatiskai pradedam skaityt, nes jei baigem tai pask.paramo failas dar neperskaitytas
+    
+    ; Patikrinam ar persk. failu skaicius nera 0
+    cmp word ptr [filesread], 0
+    jnz programEnd    ; jei perskaitem bent 1 faila, sokam i programos pabaiga.
+    
+    ; jei ne,
+  ;========== Skaitom is konsoles ==========
+    lea dx, badparams_std   ; atspausdinam: rasyk i konsole.
+    mov ah, 09h
+    int 21h
+    
+    ; Paruosiam buferi vartojimui.
+    mov byte ptr [fileReadBuff], 255    ; 1 pozicijoje kiek max. charu buferis gali laikyt.
+                                        ; 2 pozicijoje kiek perskaitem is tiesu.
+                                        ; Siuo atveju bufas gali laikyt 255 charus.
+    ; n.
+    mov ah, 0Ah
+    lea dx, fileReadBuff
+    int 21h                             ; kvieciam funkcija skaitymui is buferio.
+    
+    xor bx, bx
+    mov bl, [fileReadBuff + 1]
+    mov byte ptr [fileReadBuff], bl
+    mov byte ptr [fileReadBuff + 1], 0      ; isnulinam antra baita, nes musu egzaminatorius ims baitu kieki is 1 zodzio,
+                                            ; o DOSas persk.baitu kieki idejo i 2 baita.
+                                            
+    mov [simb], bx
+    
+    ;<debug id="atspausdinam buf.">
+    ;mov byte ptr [bx + offset fileReadBuff + 2], '$'
+    
+    ;mov dx, offset fileReadBuff + 2
+    ;mov ah, 09h
+    ;int 21h
+    
+    lea dx, endline
+    mov ah, 09h
+    int 21h
+    ;</debug>
+    
+    ; Ivykdom egzaminacija (Updeitinam reiksmes statiniuse laukuose). Automatiskai skaitysim is 'fileReadBuff'
+    call examineBuffer
+    ; Atspausdinam gauta statistika.
+    call printStats
+    
+  ;==========  ==========
     
     ;mov dl, '$'
 	;mov ah, 02h
 	;int 21h	
-	
+    
+    programEnd:
 	mov 	ah, 4ch 	; sustabdyti programa - http://www.computing.dcu.ie/~ray/teaching/CA296/notes/8086_bios_and_dos_interrupts.html#int21h_4Ch
 	mov 	al, 0 		; be klaidu = 0
 	int 	21h         ; 21h -  dos pertraukimmas - http://www.computing.dcu.ie/~ray/teaching/CA296/notes/8086_bios_and_dos_interrupts.html#int21h
