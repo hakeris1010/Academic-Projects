@@ -1,9 +1,10 @@
 ; Programa: Nr. 1
 ; Uzduoties salyga: 
 ; Atliko: Kestutis Dirma
-; Versija: 1.0 
+; Versija: 1.1 
 
-; Viskas veikia kaip turi.
+; 1.1 : 1. prideta funkcija rasyti rezus i spec. faila
+;       2. Dabar zodzius atskiriame naudodami skirtuku buferi.
 
 .model small
 .stack 100h
@@ -15,10 +16,16 @@
     filendstr db 0Dh, 0Ah, 'Failo pabaiga!', 0Dh, 0Ah, '$'
     endline db 0Dh, 0Ah, '$'
     
-    rezultsimb   db ' Simboliu: ', '$'
-    rezultzodz   db ' Zodziu: ', '$'
-    rezultdidrai db ' Didz. raidziu: ', '$'
-    rezultmazrai db ' Maz. raidziu: ', '$'
+    rezultString db 0Dh, 0Ah, ' Simboliu: '
+    rezultsimb   db 6 dup(32), ' Zodziu: '
+    rezultzodz   db 6 dup(32), ' Didz. raidziu: '
+    rezultdidrai db 6 dup(32), ' Maz. raidziu: '
+    rezultmazrai db 6 dup(32), 0Dh, 0Ah, 0Dh, 0Ah, '$'
+    rezultStringLenght equ $ - rezultString - 1
+    
+    ;skirtukai
+    whitespaces db ',.-+*/:;?!\\&()^#@~$'
+    whitelenght equ $ - whitespaces
     
     ;debugs
     startopenfile db 0Dh, 0Ah, '--- Opening a file ---', 0Dh, 0Ah, '$'
@@ -31,12 +38,17 @@
 	didrai dw 0
     statflags db 04h ; flagai, nurodantys kokioje busenoje baigem bloka (buferi)
     filesread dw 0   ; kiek failu perskaitem.
+    argsparsed dw 0  ; kiek argumentu apdorojom
+    rezfileflag db 0
 	; ---
     
-    filename db 254 dup(0), '$'      ; failo vardo saugojimo buferis. (MAX_PATH=260)
+    filename db 254 dup(0), '$'       ; failo vardo saugojimo buferis. (MAX_PATH=260)
+    resultFileName db 254 dup(0), '$' ; kiekvieno failo rezultatu failvardis.
     
 	filestart  dw ?
     filehandle dw ?
+    
+    outFileHandle dw 1          ; isvedimo (rezu) failo handlas. Pradzioje 1 (STDOUT)
 	
     fileReadBuff db 0, 0, 255 dup (0), '$' ; failo skaitymo duomenu bufas. Dydis - 255, 1 baitas - kiek perskaitem.
     fileReadBuffLen equ 255
@@ -45,8 +57,8 @@ jmp start
 
 ; Functions
 
-printNumberDecimal: ; atspausdina skaiciu desimtainiu pavidalu. Parametras: ax.
-	mov cx, 10
+printNumberDecimal: ; atspausdina skaiciu desimtainiu pavidalu. Parametrai: ax - skaicius, bx - stringo pradzia, jei 0 - i konsole.
+    mov cx, 10
     mov dx, 32
 	push dx 	; i steka idedam tarpa - zenklas baigti traukti simbolius.
 	
@@ -57,6 +69,10 @@ printNumberDecimal: ; atspausdina skaiciu desimtainiu pavidalu. Parametras: ax.
 	cmp ax, 0
 	jnz notzero		; sukam cikla kol ax ne 0.
 	
+    mov cx, 6       ; tiek simboliu max.
+    cmp bx, 0       ; jei 0 - konsole (notend), jei ne - i stringa (prstr)
+    jnz prstr1
+    
 	notend: 
 	pop dx
     cmp dx, 32
@@ -66,7 +82,53 @@ printNumberDecimal: ; atspausdina skaiciu desimtainiu pavidalu. Parametras: ax.
     mov ah, 02h
 	int 21h			; atspausdinam 1 simboli is steko.	
 	jmp notend
+    
+    prstr1: 
+        pop dx
+        cmp dx, 32
+        jz prstr2  ; jei ispopinam tarpa, pabaiga, sokam i prstr2
+        add dx, '0'     ; paruosiam spausdinimui.
+        mov byte ptr [bx], dl ; idedam i stringa.
+        inc bx
+	loop prstr1
+    
+    prstr2:
+        mov byte ptr [bx], 20h ; idedam tarpa i stringa.
+        inc bx
+    loop prstr2
+    
     end1:
+ret
+
+; gaunam stringo ilgi (iki 'dl'). Paramai: bx - failneimas, dl - deliminatorius. Grazinam ax.
+getStringLenght:
+    mov ax, bx
+    dec bx
+    loopop1:
+        inc bx
+        cmp byte ptr [bx], dl
+    jnz loopop1
+    sub bx, ax
+    mov ax, bx
+ret
+
+; Nustatom ar charas yra skirtukas. Paramas ir grazinama reiksme al'e.
+isCharWhiteSpace:
+    xor bx, bx
+    cmp al, 20h     ; tarpas
+    jg lstart1
+        mov al, 1   ; jei maziau, tarpas.
+        ret
+    lstart1:
+        cmp byte ptr [bx + offset whitespaces], al
+        jnz n11     ; jei skirtukas, tarpas.
+            mov al, 1
+            ret
+        n11:
+        inc bx
+        cmp bx, whitelenght
+    jl lstart1
+    xor al, al
 ret
 
 examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t.t.
@@ -86,7 +148,7 @@ examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t
     add bx, si                  ; buferio pabaigos pozicija (pridedam buferio pradz. adresa)
     
     loopbuf1:    
-        mov dl, byte ptr [si]
+        mov dl, byte ptr [si]   ; dl'e - dabartinis baitas.
         ;mov dl, '.'
         ;mov ah, 02h
         ;int 21h	
@@ -120,9 +182,14 @@ examineBuffer:      ; egzaminuojam buferi - randam kiek zodziu, did.raidziu ir t
         la6:
         
         ; Nustatom ar tarpas
-        cmp dl, 20h     ; tarpas
-        jg la7          ; Jei daugiau uz tarpa, sokam prie ne tarpu.
-                        ; jei maziau arba lygu - tai whitespace char'ai (tarpai)
+        push bx
+        mov al, dl
+        call isCharWhiteSpace
+        pop bx
+        
+        cmp al, 1
+        jne la7         ; Jei ne tarpas (al!=1), sokam prie ne tarpu.
+                        ; jei al=1 - tai whitespace char'ai (tarpai)
         or cl, 04h      ; 00000100 - tai  tarpas.
         jmp la8
         
@@ -147,30 +214,7 @@ ret
 
 startReadingFile: ; Failo skaitymo f-ja. 
 ;Failvardis (be nulio gale) - kintamajame 'filename'. Pask. simbolio pozicija - DI
-	;cmp bx, [filestart] ; patikrinam ar naujas failvardis nera tuscias (sutampa pradzia su dab.pozicija)
-    
-    cmp byte ptr [filename], 0
-	jz er1              
-    cmp byte ptr [filename], 20h ; jei 0 arba tarpas, sokam i pabaiga
-    jz er1
-    
-    ; Patikrinam ar pagalbos paramas (/?)
-    cmp byte ptr [filename], '/'
-    jnz startwork1
-    cmp byte ptr [filename + 1], '?'
-    jnz startwork1
         
-    lea dx, help    ; atspausdinam pagalbos pran. ir baigiam.
-    mov ah, 09h
-    int 21h
-    jmp programEnd
-    
-    ;jmp startwork1      ; jei viskas gerai, sokam i darbo pradzia.
-    
-    er1:
-    jmp badFileNameErr  ; jei blogas failneimas.
-    
-    startwork1:    
     mov byte ptr [di + offset filename], '$' ; paruosiam failvardi spausdinimui - pabaigoje '$'
 ; === printing info stuff ===
     lea dx, endline    ; atspausdinam eil. pabaiga
@@ -193,6 +237,7 @@ startReadingFile: ; Failo skaitymo f-ja.
   ; Filename print end.
 	
 	mov ax, di
+    mov bx, 0
 	call printNumberDecimal     ; atspausdinam failo vardo ilgi
     
     ;lea dx, startopenfile ; print that we're starting to open a file.
@@ -292,6 +337,7 @@ startReadingFile: ; Failo skaitymo f-ja.
     inc ax
     mov [filesread], ax ; padidinam skaiciu perskaitytu failu.
     
+    mov ax, 1       ; spausdinsim ir failneima.
     call printStats ; Atspausdinam failo statistinius duomenis
     jmp endReadingFile
     
@@ -299,14 +345,11 @@ startReadingFile: ; Failo skaitymo f-ja.
     lea dx, nofile
     mov ah, 09h
     int 21h
+    mov bx, 0
     call printNumberDecimal ; atspausdinam AX (klaidos koda) desimtainiu pavidalu
     lea dx, endline
     mov ah, 09h
     int 21h
-    jmp endReadingFile
-    
-    badFileNameErr:
-    mov ax, 0FFFFh  ; blogas failneimas
 	
 	endReadingFile:
 	;mov ax, bx
@@ -317,39 +360,136 @@ startReadingFile: ; Failo skaitymo f-ja.
     mov di, -1      ; isnulinam di'ka    
 ret
 
-; Print file statistics:
+; Print file statistics. Argument: ax. if 0, then no filename.
 printStats:
-    ;lea dx, endline
-    ;mov ah, 09h
-    ;int 21h
+    cmp ax, 0
+    jz simbs1   ; jeigu ax=0, tada failo vardo nerasom.
     
-    lea dx, rezultsimb
-    mov ah, 09h
+    ;issiaiskinam failvardzio ilgi (iki 0)
+    lea bx, filename
+    mov dl, 0
+    call getStringLenght ; rezultatas (ilgis) padetas i ax.
+    
+    ;mov bx, 0
+    ;call printNumberDecimal
+    
+    ; Write 2 file or DeViCe
+    mov cx, ax ; ilgis, gautas is getStringLenght
+    mov ah, 40h
+    mov bx, word ptr [outFileHandle]
+    lea dx, filename
     int 21h
+    
+    simbs1:
+    lea bx, rezultsimb
     mov ax, word ptr [simb]
     call printNumberDecimal
     
-    lea dx, rezultzodz
-    mov ah, 09h
-    int 21h
+    lea bx, rezultzodz
     mov ax, word ptr [zodz]
     call printNumberDecimal
     
-    lea dx, rezultmazrai
-    mov ah, 09h
-    int 21h
-    mov ax, word ptr [mazrai]
-    call printNumberDecimal
-    
-    lea dx, rezultdidrai
-    mov ah, 09h
-    int 21h
+    lea bx, rezultdidrai
     mov ax, word ptr [didrai]
     call printNumberDecimal
     
-    lea dx, endline
+    lea bx, rezultmazrai
+    mov ax, word ptr [mazrai]
+    call printNumberDecimal
+    
+    ; Write 2 file or DeViCe
+    mov ah, 40h
+    mov bx, word ptr [outFileHandle]
+    mov cx, rezultStringLenght
+    lea dx, rezultString
+    int 21h
+ret
+
+; ============= Argument parser =============
+parseArgument:
+    cmp byte ptr [filename], 0
+    jz er1
+    cmp byte ptr [filename], 20h ; jei 0 arba tarpas, sokam i klaida ir griztam.
+    jnz stpr1
+    
+    er1:
+    mov ax, 0FFFFh  ; blogas argumentas
+    jmp parend2
+    
+    stpr1:
+    mov byte ptr [di + offset filename], 0 ; paruosiam failvardi naudojimui - pabaigoje 0
+    
+    ; Patikrinam ar pagalbos paramas (/?)
+    cmp byte ptr [filename], '/'
+    jnz pnx1
+    cmp byte ptr [filename + 1], '?'
+    jnz pnx1
+    cmp byte ptr [filename + 2], 0
+    jnz pnx1
+        
+    lea dx, help    ; atspausdinam pagalbos pran. ir baigiam.
     mov ah, 09h
     int 21h
+    jmp programEnd
+    
+    ; Patikrinam ar tai yra failas i kuri rasysim duomenis. 
+    pnx1:    
+    mov ax, word ptr [argsparsed]
+    cmp ax, 0   ; tesiam tik jeigu argumentu skaicius vis dar 0
+    jnz pnx2    
+    
+    cmp byte ptr [filename], '/'
+    jnz pnx2
+    cmp byte ptr [filename + 1], 'r'
+    jnz pnx2
+    cmp byte ptr [filename + 2], 0
+    jnz pnx2
+    
+    mov byte ptr [rezfileflag], 1  ; 1 - sekantis paramas yra rezfailvardis
+    jmp parend1
+    
+    ; Patikrinam ar sekantis paramas yra rezfailvardis.
+    pnx2:
+    mov ax, word ptr [argsparsed]
+    cmp ax, 1   ; tesiam tik jeigu argumentu skaicius 1 - praparsintas tik '/r'
+    jnz pnx3 
+    
+    cmp byte ptr [rezfileflag], 1
+    jnz pnx3
+    ; patikrinam ar failas yra, jei ne, sukuriam.
+    mov ah, 3Ch
+    mov cx, 7   ; shareable attribute.
+    lea dx, filename
+    int 21h
+    
+    jnc pnx21
+    mov byte ptr [rezfileflag], 0  ; jei klaida
+        ;<debug>
+        lea dx, nofile
+        mov ah, 09h
+        int 21h
+        mov bx, 0
+        call printNumberDecimal ; atspausdinam AX (klaidos koda) desimtainiu pavidalu
+        lea dx, endline
+        mov ah, 09h
+        int 21h
+        ;</debug>
+    pnx21:    
+    mov byte ptr [rezfileflag], 2    ; 2 - yra rezfailvardis, rasom duomenis ten.
+    mov word ptr [outFileHandle], ax ; ax'e -  failo handlas.
+    jmp parend1
+    
+    ; Skaitom kaip input faila.
+    pnx3:
+    call startReadingFile
+    
+    ;Pabaigos operacijos.
+    parend1:
+    mov ax, word ptr [argsparsed]   ; isparsinom argumenta.
+    inc ax
+    mov [argsparsed], ax
+    parend2:
+    mov di, -1                      ; isnulinam di'ka - pradesim rasyt is naujo.  
 ret
 
 ; Functions end.
@@ -361,7 +501,24 @@ start:
     
     mov bx, 81h          ; bx'as - paramo pradzia.
     xor di, di
-        
+    
+    ;<DEBUG>
+    ;lea bx, endline
+    ;mov dl, '$'
+    ;call getStringLenght ; rez in ax.
+    
+    ;lea bx, rezultsimb
+    ;call printNumberDecimal ; AX'a irasom i [rezultsimb]
+    
+    ; Write 2 file or DeViCe
+    ;mov ah, 40h
+    ;mov bx, 1
+    ;mov cx, rezultStringLenght
+    ;lea dx, rezultString
+    ;int 21h
+    
+    ;jmp programEnd
+    ;</DEBUG>
 	
 	tonext:
         mov dl, es:[bx]      ; i dl'a ikeliam simboli is extended sego (parametro simboli)
@@ -377,7 +534,7 @@ start:
         jnz after1
         
         push bx              ; idedam bx'a i steka, nes funkcijoje bx'as bus naud0jamas.
-        call startReadingFile 
+        call parseArgument 
         pop bx
     
         after1:
@@ -386,7 +543,7 @@ start:
 	jmp tonext			 ; tesiam cikla.
     
 	loopend:    
-	call startReadingFile ; automatiskai pradedam skaityt, nes jei baigem tai pask.paramo failas dar neperskaitytas
+	call parseArgument ; automatiskai pradedam skaityt, nes jei baigem tai pask.paramo failas dar neperskaitytas
     
     ; Patikrinam ar persk. failu skaicius nera 0
     cmp word ptr [filesread], 0
@@ -430,6 +587,7 @@ start:
     ; Ivykdom egzaminacija (Updeitinam reiksmes statiniuse laukuose). Automatiskai skaitysim is 'fileReadBuff'
     call examineBuffer
     ; Atspausdinam gauta statistika.
+    mov ax, 0   ; jokio failo vardo.
     call printStats
     
   ;==========  ==========
@@ -439,6 +597,15 @@ start:
 	;int 21h	
     
     programEnd:
+    ; Jei reikia, uzdarom rezult. faila.
+    mov bx, [outFileHandle]
+    cmp bx, 1
+    jz enddd1  ; jeigu 1, tai stdout, nieko nedarom
+        ; jeigu ne 1 (ne STDOUT), tai reikia uzdaryt.
+        mov ah, 3Eh             
+        int 21h             
+        
+    enddd1:
 	mov 	ah, 4ch 	; sustabdyti programa - http://www.computing.dcu.ie/~ray/teaching/CA296/notes/8086_bios_and_dos_interrupts.html#int21h_4Ch
 	mov 	al, 0 		; be klaidu = 0
 	int 	21h         ; 21h -  dos pertraukimmas - http://www.computing.dcu.ie/~ray/teaching/CA296/notes/8086_bios_and_dos_interrupts.html#int21h
