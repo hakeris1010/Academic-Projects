@@ -78,6 +78,51 @@ printNumberDecimal proc ; atspausdina skaiciu desimtainiu pavidalu.
     ret
 printNumberDecimal endp
 
+; Get Hex Word
+; - si : start of buffer.
+; - cx : SymCount from SI
+; Result : ax
+;getWordFromHexBuffer proc
+    ; mov ax, 0
+    ; _lpStart
+    
+    ; ret
+;getWordFromHexBuffer endp
+
+; - AL : ASCII hex byte (e.g. '5' or 'A' or 'a')
+; Result : ax. 
+;          If good, AH=1, AL=Converted Nibble (Half-Byte). 
+;          If Bad, AH=0
+translateHexToByte proc
+    cmp al, '0'
+    jl _bEnd
+    cmp al, 'A'
+    jge _nx1
+    cmp al, '9'         ; Less than A
+    jg _bEnd            ; if (9-A), bad.
+        sub al, '0'     ; Good! It's [0-9] !
+        jmp short _gEnd
+    _nx1:               ; Bigger or equal to 'A'
+    cmp al, 'F'
+    jg _nx2
+        sub al, 'A'     ; Good ! It's [A-F] !
+        add al, 10
+        jmp short _gEnd
+    _nx2:               ; Greater than 'F'
+    cmp al, 'a'
+    jl _bEnd
+    cmp al, 'f'
+    jg _bEnd
+        sub al, 'a'     ; Good! It;s [a-f] !
+        add al, 10
+    _gEnd:
+    mov ah, 1
+    ret
+    _bEnd:
+    xor ah, ah      ; Bad, AH=0
+    ret
+translateHexToByte endp
+
 ; Paramas: cx - kiek baitu nuo sp.
 printStack proc
     mov si, sp
@@ -283,15 +328,15 @@ writeToFile endp
 ; Rasom i faila.
 ; Argsai:
 ; - ax : failo handlas
-; - bx : buferis, 0-terminuotas
+; - bx : buferis, $-terminuotas
 ; Grazina ax - jei klaida ne 0.
 writeStringToFile proc
     ; Write 2 file or DeViCe
     push ax
     push bx
     
-    mov dl, 0
-    call getStringLenght    ; buferis - bx'e. Res.Ilgis - ax'e
+    mov dl, '$'
+    call getStringLenght  ; buferis - bx'e. Res.Ilgis - ax'e
     mov cx, ax            ; Ilgis
     
     pop dx                ; dx - buferis. Mes ji persiuntem bx'e.
@@ -375,7 +420,8 @@ openFileName proc
     ;mov al,                ; Open attrib
     ;mov ah, 3dh             ; open file id
     ;int 21h                 ; call this function - resulting handle on AX  
-    ;jnc _end114        
+    ;jnc _end114   
+    
     
     _errTotal:
     call printFileError
