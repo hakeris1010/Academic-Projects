@@ -7,60 +7,208 @@
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "grylthread.h"
+#include "gsrvsocks.h"
 
 // Need to link with Ws2_32.lib
 //#pragma comment (lib, "Ws2_32.lib")
 // #pragma comment (lib, "Mswsock.lib")
 
-#define GSRV_DEFAULT_BUFLEN 512
-#define GSRV_DEFAULT_PORT "27015"
+#define GSRV_DEFAULT_PORT "4440"
+
+#define GBANG_VERSION 1
+
+#define GBANG_ERROR_NOFILE  "E_NOFILE "
+#define GBANG_ERROR_SOCKS   "E_SOCKS "
+
+#define GBANG_DATA_START    "START_DATA "
+#define GBANG_DATA_SENDING  "DATA "
+#define GBANG_DATA_END      "END_DATA "
+
+#define GBANG_REQUEST_FILE      "FILE "
+#define GBANG_REQUEST_DIR       "DIR "
+#define GBANG_REQUEST_SYSINFO   "SYST "
+#define GBANG_REQUEST_EXIT      "EXIT "
+#define GBANG_REQUEST_SHUTDOWN  "SHUTDOWN "
+ 
+#define GBANG_HEADER_SIZE   16
+#define GBANG_DATA_SIZE     1472
+
+// Statuses
+#define GSRV_STATUS_ACTIVE          1
+#define GSRV_STATUS_RECEIVE_PENDING 2
+#define GSRV_STATUS_SEND_PENDING    4
+#define GSRV_STATUS_IDLE            8
 
 // Accept this much connections
 #define GSRV_CONNECTIONS_TO_ACCEPT 4
 
+struct __attribute__((__packed__))  GrylBangProtoData // Set no padding for the accurate packet size.
+{
+    //Header
+    char version;
+    char commandString[ GBANG_HEADER_SIZE - 1 ];
+    //Data
+    char data[ GBANG_DATA_SIZE ];
+};
 
-int sendFile(SOCKET sock, const char* fname){
+typedef struct 
+{
+    SOCKET sock;
+    GrylBangProtoData prot;
+    short status;
+} GrylSockStruct;
+
+typedef struct
+{
+    GrylSockStruct* sockStruct;
+    GrThreadHandle threadHandle;
+} ClientThread;
+
+typedef struct 
+{
+    volatile char needToClose;
+    volatile size_t threadCount;
+} GlobalDescStructureXXX;
+
+static GlobalDescStructureXXX GlobalDesc = { 0 };
+
+// Functions. 
+
+int sendPacket(GrylSockStruct* st, const char* command, size_t dataLen, char cleanupOnError)
+{
+    if(!st) return 0;
+
+    st->prot.version = GBANG_VERSION;
+    if(command)
+        strcpy(st->prot.commandString, command);
+
+    iSendResult = send( st->sock, &(st->prot), GBANG_HEADER_SIZE + dataLen, 0 );
+    if (iSendResult == SOCKET_ERROR && cleanupOnError) {
+        gsockErrorCleanup(sock, NULL, "send failed with error", 0, 0);
+        return -1;
+    }
+
+    return iSendResult;
+}
+
+int sendFile(GrylSockStruct* sock, const char* fname)
+{
+    if(!sock) return -2;
+    
     // Try to open file.
     printf("Trying to open file: %s|\n", fname);
+    int iSendResult;
 
     FILE* inputFile = fopen(fname, "rb");
-    char buffer[GSRV_DEFAULT_BUFLEN];
-    size_t bufferLen = GSRV_DEFAULT_BUFLEN;
-                
+
     if(!inputFile){
         printf("File requested can't be opened. Terminating.\n");
-        strcpy(buffer, "File doesn't exist on this machine!");    
-        
-        int iSendResult = send( sock, buffer, strlen(buffer), 0 );
-        if (iSendResult == SOCKET_ERROR) {
-            printf("send failed with error: %d\n", WSAGetLastError());
-            closesocket(sock);
-            WSACleanup();
-            return 1;
-        }
+
+        if( (iSendResult = sendPacket(sock, GBANG_ERROR_NOFILE, 0, 1)) < 0 )
+            return -1;
         printf("Bytes sent: %d\n", iSendResult);
     }
     else{ // File exists.
+        // Send file data Begin message
+        if( (iSendResult = sendPacket(sock, GBANG_DATA_START, 0, 1)) < 0 )
+            return -1;
+
         size_t bytesRead;
         do{
-            size_t bytesRead = fread(buffer, 1, bufferLen, inputFile);
+            // Read it directly into the packet buffer
+            size_t bytesRead = fread((sock->prot).data, 1, sizeof((sock->prot).data), inputFile);
 
             if(bytesRead > 0){
-                int iSendResult = send( sock, buffer, bytesRead, 0 );
-                if (iSendResult == SOCKET_ERROR) {
-                    printf("send failed with error: %d\n", WSAGetLastError());
-                    closesocket(sock);
-                    WSACleanup();
-                    return 1;
+                // Send the packet with a file data.
+                if( (iSendResult = sendPacket(sock, GBANG_DATA_SENDING, bytesRead, 1)) < 0 ){
+                    sendPacket(sock, GBANG_ERROR_SOCKS, 0, 1);
+                    return -1;
                 }
+
                 printf("Bytes sent: %d\n", iSendResult);
             }
         } while(!feof(inputFile) && !ferror(inputFile));
+        
+        fclose(inputFile);
+
+        // Send file data End message
+        if( (iSendResult = sendPacket(sock, GBANG_DATA_END, 0, 1)) < 0 )
+            return -1;
     }
 
-    fclose(inputFile);
-
     return 0;
+}
+
+void nullifyFnameEnd(char* fname, int size)
+{
+    if(!fname || size<=0) return;
+    fname[size] = 0;
+
+    for(int i=size-1; i>0; i--){
+        if(fname[i] < 32) // invalid
+            fname[i] = 0;
+    }
+}
+
+void runClient(void* param)
+{
+    if(!param) return;
+
+    GrylSockStruct* cliSock = (GrylSockStruct*)param;
+
+    int iResult, datalen;
+    char* command = cliSock->prot->commandString;
+    char* databuf = cliSock->prot->data;
+
+    printf("Running the client loop...\n");
+    // Receive until the peer shuts down the connection
+    do {
+        // Receive whole Bang protocol structure at once.
+        iResult = recv(cliSock->sock, &(cliSock->prot), sizeof(GrylBangProtoData), 0);
+
+        if (iResult > 0) { // Got bytes. iResult: how many bytes got.
+            printf("Bytes received: %d\nPacket data:\n%.*s\n", iResult, iResult, &(cliSock->prot));
+            datalen = iResult - GBANG_HEADER_SIZE;
+            
+            // Check for the values and do the thing.
+            // GBANG_REQUEST_FILE
+            if( strncmp( command, GBANG_REQUEST_FILE, strlen(GBANG_REQUEST_FILE) ) == 0 ){
+                // Filename is expected on Data. Null-terminate the end of it.
+                nullifyFnameEnd(databuf, datalen);
+                printf("Got FILE request. Fname: %s\n", databuf);
+                
+                if(sendFile( cliSock, databuf ) != 0)
+                    printf("Error occured while sending file.\n";
+            }
+            //GBANG_REQUEST_DIR
+            else if( strncmp( command, GBANG_REQUEST_DIR, strlen(GBANG_REQUEST_DIR) ) == 0 ){
+                // Get directory representation in string. 
+            }
+            //GBANG_REQUEST_SYSINFO
+            else if( strncmp( command, GBANG_REQUEST_SYSINFO, strlen(GBANG_REQUEST_SYSINFO) ) == 0 ){
+                //
+            }
+            //GBANG_REQUEST_EXIT
+            else if( strncmp( command, GBANG_REQUEST_EXIT, strlen(GBANG_REQUEST_EXIT) ) == 0 ){
+                printf("EXIT command received.\n");
+                iResult = 0; // Exit the loop and close client.                
+            }
+            //ANG_REQUEST_SHUTDOWN
+            else if( strncmp( command, GBANG_REQUEST_SHUTDOWN, strlen(GBANG_REQUEST_SHUTDOWN) ) == 0 ){
+                GlobalDesc.needToClose = 1; // Set the close flag for all the threads.
+            }
+        }
+        else if (iResult == 0) // Client socket shut down'd properly. Close connection message has been posted (TCP FIN).
+            printf("Close message posted.\n");
+        else                   // Error occured.
+            printf("recv failed with error: %d\n", gsrvGetLastError());
+
+    } while (iResult > 0 && !GlobalDesc.needToClose);
+    
+    printf("Closing the socket...\n");
+    gsockCloseSocket(cliSock->sock);
+    cliSock->status &= ~GSRV_STATUS_ACTIVE; // Make inactive (clear specific bit).
 }
 
 // Arg: Port number on which we'll listen.
@@ -72,38 +220,42 @@ int runServer(const char* port)
     int iResult;
 
     SOCKET ListenSocket = INVALID_SOCKET;
-    SOCKET ClientSocket = INVALID_SOCKET;
 
     struct addrinfo *result = NULL;
     struct addrinfo hints;
 
-    int iSendResult;
-    char recvbuf[GSRV_DEFAULT_BUFLEN];
-    int recvbuflen = GSRV_DEFAULT_BUFLEN;
+    struct sockaddr_in sin;
+    socklen_t sinlen;
 
-    // Initialize Winsock
+    int iSendResult;
+
+    // ThreadPool.
+    ClientThread* clientThreadPool[ GSRV_MAX_CLIENTS ];
+    memset( clientThreadPool, 0, sizeof(clientThreadPool) ); // Everything == NULL.
+
+
+    // Initialize  Startup.
     printf("Done.\nInit WinSock... ");
 
-    iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
+    if(gsockInitSocks() != 0);
         return 1;
-    }
 
     printf("Done.\nInit addrinfo hints...");
-    ZeroMemory(&hints, sizeof(hints));
+
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;       // Use IPv4 socket mode.
     hints.ai_socktype = SOCK_STREAM; // Stream mode. (For UDP, we use Datagram)
     hints.ai_protocol = IPPROTO_TCP; // Use TCP for communicating.
     hints.ai_flags = AI_PASSIVE;     // Use it for listening.
 
-    // Resolve the server address and port
-    printf("Done.\nCalling getAddrInfo, with specified port number... ");
-    iResult = getaddrinfo(NULL, port, &hints, &result);
+    //==============================================//
+    // Resolve the server address and port with the specified hints.
+    printf("Done.\nCalling getAddrInfo, with specified port number as a service... ");
 
+    iResult = getaddrinfo(NULL, port, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
-        WSACleanup();
+        gsockSockCleanup();
         return 1;
     }
 
@@ -111,102 +263,70 @@ int runServer(const char* port)
     printf("Done.\nCreate a ListenSocket (socket())...");
     ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (ListenSocket == INVALID_SOCKET) {
-        printf("socket failed with error: %ld\n", WSAGetLastError());
-        freeaddrinfo(result);
-        WSACleanup();
-        return 1;
+        return gsockErrorCleanup(INVALID_SOCKET, result, "socket failed with error", 1, 1);
     }
 
     // Setup the TCP listening socket, bind it to a local server address.
     printf("Done.\nBinding ListenSocket... ");
     iResult = bind( ListenSocket, result->ai_addr, (int)(result->ai_addrlen));
     if (iResult == SOCKET_ERROR) {
-        printf("bind failed with error: %d\n", WSAGetLastError());
-        freeaddrinfo(result);
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
+        return gsockErrorCleanup(ListenSocket, result, "bind failed with error", 1, 1);
     }
-    
+
     printf("Done.\nFreeAddrInfo()... ");
     freeaddrinfo(result);
 
     // Mark the ListenSocket as the socket willing to accept incoming connections.
+    // Max pending connections: SOMAXCONN. This is defined by system.
     printf("Done.\nlisten(ListenSocket)... ");
     iResult = listen(ListenSocket, SOMAXCONN);
     if (iResult == SOCKET_ERROR) {
-        printf("listen failed with error: %d\n", WSAGetLastError());
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
+        return gsockErrorCleanup(ListenSocket, NULL, "listen failed with error", 1, 1);
     }
 
+    //===================================================//
     // Print on which port the socket is listening.
     printf("Done.\nGetSockName()... ");
-    struct sockaddr_in sin;
-    socklen_t len = sizeof(sin);
-    if (getsockname(ListenSocket, (struct sockaddr *)&sin, &len) == -1)
-        printf("getsockname err. can't get port.\n");
+        if (getsockname(ListenSocket, (struct sockaddr *)&sin, &sinlen) == -1)
+            printf("getsockname err. can't get port.\n");
     else
         printf("\nThe server is listening on port: %d\n", ntohs(sin.sin_port));
 
+
     // Initialize and start accept/receive loop.
-    int connectionsAccepted = 0;
+    size_t connectionsAccepted = 0;
+    char exitLoop = 0;
     
     printf("Done.\n\nStarting Loop... \n");
-    while(connectionsAccepted < GSRV_CONNECTIONS_TO_ACCEPT) // Run a server loop.
+    while(!exitLoop && !GlobalDesc.needToClose) // Run a server loop.
     {
         // Extract first request from a connection queue.
         // Blocks the thread until connection is received.
         printf("------------\n\nWaiting for the connection.....\n");
-        ClientSocket = accept(ListenSocket, NULL, NULL);
+        
+        ClientSocket = accept(ListenSocket, (struct sockaddr *)&sin, (socklen_t*)&sinlen);
         if (ClientSocket == INVALID_SOCKET) {
-            printf("accept failed with error: %d\n", WSAGetLastError());
-            closesocket(ListenSocket);
-            WSACleanup();
-            return 1;
+            printf("accept failed with error: %d\n", gsrvGetLastError());
+            break;
         }
         
-        printf("Connection Received!\nGetting the data...\n");
-        // Receive until the peer shuts down the connection
-        do {
-            iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
-            
-            if (iResult > 0) { // Got bytes. iResult: how many bytes got.
-                recvbuf[(recvbuf[iResult-1]=='\n' ? iResult-1 : iResult)] = 0; // Null-Terminated string.
-                
-                printf("Bytes received: %d\nPacket data:\n%s\n", iResult, recvbuf);
-                
-                sendFile(ClientSocket, (const char*)recvbuf);
+        for(int i=0; i<GSRV_MAX_CLIENTS; i++)
+        {
+            if(!clientThreadPool[i]){
+                // Just create a new thread and GrylSockStruct for a client
+                break;
             }
-            else if (iResult == 0) // Client socket shut down'd properly.
-                printf("Connection closing...\n");
-            else  {  // Error occured.
-                printf("recv failed with error: %d\n", WSAGetLastError());
-                closesocket(ClientSocket);
-                WSACleanup();
-                return 1;
+                
+            if(!isThreadRunning( clientThreadPool[i]->threadHandle )){
+                // If already not running, we can assign a new thread here.
+                break;
             }
-
-        } while (iResult > 0);
-        
-        printf("Shutting down the connection...\n");
-        // shutdown the connection since we're done
-        iResult = shutdown(ClientSocket, SD_SEND);
-        if (iResult == SOCKET_ERROR) {
-            printf("shutdown failed with error: %d\n", WSAGetLastError());
-            closesocket(ClientSocket);
-            WSACleanup();
-            return 1;
         }
-
-        connectionsAccepted++;
     }
 
     // cleanup
     closesocket(ListenSocket);
-    closesocket(ClientSocket);
-    WSACleanup();
+    gsockSockCleanup();
 
     return 0;
 }
