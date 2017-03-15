@@ -8,12 +8,15 @@ ifeq ($(OS),Windows_NT)
 endif
 
 SOURCES_SERVER= src/server/server.c \
-                src/server/grylthread.c  
+                src/server/grylthread.c \
+                src/server/gsrvsocks.c
 
 SOURCES_CLIENT= src/client/client.c
 
 SERVNAME= server
 CLINAME= client
+
+BUILD_DIR= build
 
 all: $(SERVNAME) $(CLINAME)
 
@@ -21,13 +24,13 @@ all: $(SERVNAME) $(CLINAME)
 	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 $(SERVNAME): $(SOURCES_SERVER:.c=.o)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $(BUILD_DIR)/$@ $^ $(LDFLAGS)
 
 $(CLINAME): $(SOURCES_CLIENT:.c=.o)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $(BUILD_DIR)/$@ $^ $(LDFLAGS)
 
 clean:
 	$(RM) *.o */*.o */*/*.o */*/*/*.o
 
 clean_all: clean
-	$(RM) $(SERVNAME) $(CLINAME)
+	$(RM) $(BUILD_DIR)/$(SERVNAME) $(BUILD_DIR)/$(CLINAME)

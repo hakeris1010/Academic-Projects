@@ -105,12 +105,15 @@ void sleep(unsigned int millisecs)
 void joinThread(GrThreadHandle hnd)
 {
     if(!hnd) return;
-    #if defined __WIN32
-        WaitForSingleObject( ((struct ThreadHandlePriv*)hnd)->hThread, INFINITE );
-    #elif defined __linux__
-        waitpid( ((struct ThreadHandlePriv*)hnd)->pid, NULL, 0 );
-    #endif
-
+    if(isThreadRunning(hnd))
+    {
+        #if defined __WIN32
+            WaitForSingleObject( ((struct ThreadHandlePriv*)hnd)->hThread, INFINITE );
+        #elif defined __linux__
+            waitpid( ((struct ThreadHandlePriv*)hnd)->pid, NULL, 0 );
+        #endif
+    }
+    // Now thread is no longer running, we can free it's handle.
     free( (struct ThreadHandlePriv*)hnd );
 }
 

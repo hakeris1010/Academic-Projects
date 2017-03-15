@@ -40,10 +40,11 @@
 #define GSRV_STATUS_SEND_PENDING    4
 #define GSRV_STATUS_IDLE            8
 
+#define GSRV_MAX_CLIENTS 32
 // Accept this much connections
 #define GSRV_CONNECTIONS_TO_ACCEPT 4
 
-struct __attribute__((__packed__))  GrylBangProtoData // Set no padding for the accurate packet size.
+struct __attribute__((__packed__)) GrylBangProtoData // Set no padding for the accurate packet size.
 {
     //Header
     char version;
@@ -55,7 +56,7 @@ struct __attribute__((__packed__))  GrylBangProtoData // Set no padding for the 
 typedef struct 
 {
     SOCKET sock;
-    GrylBangProtoData prot;
+    struct GrylBangProtoData prot;
     short status;
 } GrylSockStruct;
 
@@ -79,13 +80,13 @@ int sendPacket(GrylSockStruct* st, const char* command, size_t dataLen, char cle
 {
     if(!st) return 0;
 
-    st->prot.version = GBANG_VERSION;
+    (st->prot).version = GBANG_VERSION;
     if(command)
-        strcpy(st->prot.commandString, command);
+        strcpy((st->prot).commandString, command);
 
-    iSendResult = send( st->sock, &(st->prot), GBANG_HEADER_SIZE + dataLen, 0 );
+    int iSendResult = send( st->sock, (char*)&(st->prot), GBANG_HEADER_SIZE + dataLen, 0 );
     if (iSendResult == SOCKET_ERROR && cleanupOnError) {
-        gsockErrorCleanup(sock, NULL, "send failed with error", 0, 0);
+        gsockErrorCleanup(st->sock, NULL, "send failed with error", 0, 0);
         return -1;
     }
 
@@ -158,14 +159,14 @@ void runClient(void* param)
     GrylSockStruct* cliSock = (GrylSockStruct*)param;
 
     int iResult, datalen;
-    char* command = cliSock->prot->commandString;
-    char* databuf = cliSock->prot->data;
+    char* command = (cliSock->prot).commandString;
+    char* databuf = (cliSock->prot).data;
 
     printf("Running the client loop...\n");
     // Receive until the peer shuts down the connection
     do {
         // Receive whole Bang protocol structure at once.
-        iResult = recv(cliSock->sock, &(cliSock->prot), sizeof(GrylBangProtoData), 0);
+        iResult = recv(cliSock->sock, (char*)&(cliSock->prot), sizeof(struct GrylBangProtoData), 0);
 
         if (iResult > 0) { // Got bytes. iResult: how many bytes got.
             printf("Bytes received: %d\nPacket data:\n%.*s\n", iResult, iResult, &(cliSock->prot));
@@ -179,7 +180,7 @@ void runClient(void* param)
                 printf("Got FILE request. Fname: %s\n", databuf);
                 
                 if(sendFile( cliSock, databuf ) != 0)
-                    printf("Error occured while sending file.\n";
+                    printf("Error occured while sending file.\n");
             }
             //GBANG_REQUEST_DIR
             else if( strncmp( command, GBANG_REQUEST_DIR, strlen(GBANG_REQUEST_DIR) ) == 0 ){
@@ -202,7 +203,7 @@ void runClient(void* param)
         else if (iResult == 0) // Client socket shut down'd properly. Close connection message has been posted (TCP FIN).
             printf("Close message posted.\n");
         else                   // Error occured.
-            printf("recv failed with error: %d\n", gsrvGetLastError());
+            printf("recv failed with error: %d\n", gsockGetLastError());
 
     } while (iResult > 0 && !GlobalDesc.needToClose);
     
@@ -216,7 +217,6 @@ int runServer(const char* port)
 {
     printf("Init start vars... ");
 
-    WSADATA wsaData;
     int iResult;
 
     SOCKET ListenSocket = INVALID_SOCKET;
@@ -227,17 +227,15 @@ int runServer(const char* port)
     struct sockaddr_in sin;
     socklen_t sinlen;
 
-    int iSendResult;
-
     // ThreadPool.
-    ClientThread* clientThreadPool[ GSRV_MAX_CLIENTS ];
+    ClientThread clientThreadPool[ GSRV_MAX_CLIENTS ];
     memset( clientThreadPool, 0, sizeof(clientThreadPool) ); // Everything == NULL.
 
 
     // Initialize  Startup.
     printf("Done.\nInit WinSock... ");
 
-    if(gsockInitSocks() != 0);
+    if(gsockInitSocks() != 0)
         return 1;
 
     printf("Done.\nInit addrinfo hints...");
@@ -304,23 +302,48 @@ int runServer(const char* port)
         // Blocks the thread until connection is received.
         printf("------------\n\nWaiting for the connection.....\n");
         
-        ClientSocket = accept(ListenSocket, (struct sockaddr *)&sin, (socklen_t*)&sinlen);
+        SOCKET ClientSocket = accept(ListenSocket, (struct sockaddr *)&sin, (socklen_t*)&sinlen);
         if (ClientSocket == INVALID_SOCKET) {
-            printf("accept failed with error: %d\n", gsrvGetLastError());
+            printf("accept failed with error: %d\n", gsockGetLastError());
             break;
         }
+
+        printf("New client: %s, port %d\n", inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
         
         for(int i=0; i<GSRV_MAX_CLIENTS; i++)
         {
-            if(!clientThreadPool[i]){
+            if(!clientThreadPool[i].threadHandle && !clientThreadPool[i].sockStruct){ //is still empty
                 // Just create a new thread and GrylSockStruct for a client
+                clientThreadPool[i].sockStruct = (GrylSockStruct*)calloc( 1, sizeof(GrylSockStruct) );
+                clientThreadPool[i].sockStruct->status |= GSRV_STATUS_ACTIVE;
+                clientThreadPool[i].sockStruct->sock = ClientSocket;
+                // Spawn this thread. Param - GrylSockStruct client structure
+                clientThreadPool[i].threadHandle = procToThread(runClient, clientThreadPool[i].sockStruct); 
                 break;
             }
+
+            //After this the clientThreadPool[i] is populated.
                 
-            if(!isThreadRunning( clientThreadPool[i]->threadHandle )){
-                // If already not running, we can assign a new thread here.
+            if(!isThreadRunning( clientThreadPool[i].threadHandle )){
+                // If thread is not running, we can assign a new thread here.
+                joinThread( clientThreadPool[i].threadHandle );
+                // Repopulate the sockStruct
+                clientThreadPool[i].sockStruct->status |= GSRV_STATUS_ACTIVE;
+                clientThreadPool[i].sockStruct->sock = ClientSocket;
+                // Spawn the thread
+                clientThreadPool[i].threadHandle = procToThread(runClient, clientThreadPool[i].sockStruct); 
                 break;
             }
+        }
+    }
+    
+    // Cleanup the memory.
+    for(int i=0; i<GSRV_MAX_CLIENTS; i++){
+        if(clientThreadPool[i].threadHandle){
+            joinThread( clientThreadPool[i].threadHandle );
+        }
+        if(clientThreadPool[i].sockStruct){
+            free(clientThreadPool[i].sockStruct);
         }
     }
 

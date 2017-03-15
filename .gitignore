@@ -13,6 +13,7 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+*.exe
 
 # Windows shortcuts
 *.lnk
@@ -58,6 +59,8 @@ Temporary Items
 
 # Compiler-Generated files
 *.o
+*.obj
+*.a
 *.exe
 
 #Directories
