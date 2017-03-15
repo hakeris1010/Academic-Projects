@@ -7,11 +7,11 @@ ifeq ($(OS),Windows_NT)
     LDFLAGS += -lWs2_32
 endif
 
-SOURCES_SERVER= src/server/server.c \
-                src/server/grylthread.c \
-                src/server/gsrvsocks.c
+SOURCES_SERVER= src/server.c \
+                src/gryltools/grylthread.c \
+                src/gryltools/gsrvsocks.c
 
-SOURCES_CLIENT= src/client/client.c
+SOURCES_CLIENT= src/client.c
 
 SERVNAME= server
 CLINAME= client

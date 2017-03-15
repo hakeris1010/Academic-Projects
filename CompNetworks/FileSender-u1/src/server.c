@@ -2,13 +2,14 @@
 //#undef UNICODE
 //#define WIN32_LEAN_AND_MEAN
 
-#include <winsock2.h>
+/*#include <winsock2.h>
 #include <windows.h>
-#include <ws2tcpip.h>
+#include <ws2tcpip.h>*/
+
 #include <stdlib.h>
 #include <stdio.h>
-#include "grylthread.h"
-#include "gsrvsocks.h"
+#include "gryltools/grylthread.h"
+#include "gryltools/gsrvsocks.h"
 
 // Need to link with Ws2_32.lib
 //#pragma comment (lib, "Ws2_32.lib")
@@ -162,14 +163,15 @@ void runClient(void* param)
     char* command = (cliSock->prot).commandString;
     char* databuf = (cliSock->prot).data;
 
-    printf("Running the client loop...\n");
+    printf("\n* * * * *\nRunning the client loop...\n\n");
     // Receive until the peer shuts down the connection
     do {
         // Receive whole Bang protocol structure at once.
         iResult = recv(cliSock->sock, (char*)&(cliSock->prot), sizeof(struct GrylBangProtoData), 0);
 
         if (iResult > 0) { // Got bytes. iResult: how many bytes got.
-            printf("Bytes received: %d\nPacket data:\n%.*s\n", iResult, iResult, &(cliSock->prot));
+            printf("Packet received from Socket:%d. Bytes received: %d\n", cliSock->sock, iResult);
+            //printf("Packet data:\n%.*s\n", iResult, &(cliSock->prot));
             datalen = iResult - GBANG_HEADER_SIZE;
             
             // Check for the values and do the thing.
@@ -181,6 +183,7 @@ void runClient(void* param)
                 
                 if(sendFile( cliSock, databuf ) != 0)
                     printf("Error occured while sending file.\n");
+                printf("\n");    
             }
             //GBANG_REQUEST_DIR
             else if( strncmp( command, GBANG_REQUEST_DIR, strlen(GBANG_REQUEST_DIR) ) == 0 ){
@@ -207,7 +210,7 @@ void runClient(void* param)
 
     } while (iResult > 0 && !GlobalDesc.needToClose);
     
-    printf("Closing the socket...\n");
+    printf("Sock. %d : Closing the thread...\n - - - - - \n", cliSock->sock);
     gsockCloseSocket(cliSock->sock);
     cliSock->status &= ~GSRV_STATUS_ACTIVE; // Make inactive (clear specific bit).
 }
@@ -300,7 +303,7 @@ int runServer(const char* port)
     {
         // Extract first request from a connection queue.
         // Blocks the thread until connection is received.
-        printf("------------\n\nWaiting for the connection.....\n");
+        printf("\nWaiting for the connection.....\n");
         
         SOCKET ClientSocket = accept(ListenSocket, (struct sockaddr *)&sin, (socklen_t*)&sinlen);
         if (ClientSocket == INVALID_SOCKET) {
@@ -308,11 +311,13 @@ int runServer(const char* port)
             break;
         }
 
-        printf("New client: %s, port %d\n", inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
+        printf("Connection accepted!\n Client IP: %s\n Port: %d\n\n", inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
         
         for(int i=0; i<GSRV_MAX_CLIENTS; i++)
         {
             if(!clientThreadPool[i].threadHandle && !clientThreadPool[i].sockStruct){ //is still empty
+                printf("Found empty position at %d. Adding client thread...\n", i);
+
                 // Just create a new thread and GrylSockStruct for a client
                 clientThreadPool[i].sockStruct = (GrylSockStruct*)calloc( 1, sizeof(GrylSockStruct) );
                 clientThreadPool[i].sockStruct->status |= GSRV_STATUS_ACTIVE;
@@ -325,6 +330,8 @@ int runServer(const char* port)
             //After this the clientThreadPool[i] is populated.
                 
             if(!isThreadRunning( clientThreadPool[i].threadHandle )){
+                printf("Found closed thread at %d. Adding client thread...\n", i);
+
                 // If thread is not running, we can assign a new thread here.
                 joinThread( clientThreadPool[i].threadHandle );
                 // Repopulate the sockStruct
@@ -337,6 +344,7 @@ int runServer(const char* port)
         }
     }
     
+    printf("\nLoop Ended. Cleaning up......\n");
     // Cleanup the memory.
     for(int i=0; i<GSRV_MAX_CLIENTS; i++){
         if(clientThreadPool[i].threadHandle){
