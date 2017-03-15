@@ -10,30 +10,13 @@
 #include <stdio.h>
 #include "gryltools/grylthread.h"
 #include "gryltools/gsrvsocks.h"
+#include "gbang.h"
 
 // Need to link with Ws2_32.lib
 //#pragma comment (lib, "Ws2_32.lib")
 // #pragma comment (lib, "Mswsock.lib")
 
 #define GSRV_DEFAULT_PORT "4440"
-
-#define GBANG_VERSION 1
-
-#define GBANG_ERROR_NOFILE  "E_NOFILE "
-#define GBANG_ERROR_SOCKS   "E_SOCKS "
-
-#define GBANG_DATA_START    "START_DATA "
-#define GBANG_DATA_SENDING  "DATA "
-#define GBANG_DATA_END      "END_DATA "
-
-#define GBANG_REQUEST_FILE      "FILE "
-#define GBANG_REQUEST_DIR       "DIR "
-#define GBANG_REQUEST_SYSINFO   "SYST "
-#define GBANG_REQUEST_EXIT      "EXIT "
-#define GBANG_REQUEST_SHUTDOWN  "SHUTDOWN "
- 
-#define GBANG_HEADER_SIZE   16
-#define GBANG_DATA_SIZE     1472
 
 // Statuses
 #define GSRV_STATUS_ACTIVE          1
@@ -44,15 +27,6 @@
 #define GSRV_MAX_CLIENTS 32
 // Accept this much connections
 #define GSRV_CONNECTIONS_TO_ACCEPT 4
-
-struct __attribute__((__packed__)) GrylBangProtoData // Set no padding for the accurate packet size.
-{
-    //Header
-    char version;
-    char commandString[ GBANG_HEADER_SIZE - 1 ];
-    //Data
-    char data[ GBANG_DATA_SIZE ];
-};
 
 typedef struct 
 {
