@@ -11,7 +11,8 @@ SOURCES_SERVER= src/server.c \
                 src/gryltools/grylthread.c \
                 src/gryltools/gsrvsocks.c
 
-SOURCES_CLIENT= src/client.c
+SOURCES_CLIENT= src/client.c \
+                src/gryltools/gsrvsocks.c
 
 SERVNAME= server
 CLINAME= client

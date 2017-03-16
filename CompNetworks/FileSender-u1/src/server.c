@@ -145,6 +145,7 @@ void runClient(void* param)
 
         if (iResult > 0) { // Got bytes. iResult: how many bytes got.
             printf("Packet received from Socket:%d. Bytes received: %d\n", cliSock->sock, iResult);
+            printf("Packet data: %.*s\n", iResult, databuf);
             //printf("Packet data:\n%.*s\n", iResult, &(cliSock->prot));
             datalen = iResult - GBANG_HEADER_SIZE;
             
@@ -175,6 +176,10 @@ void runClient(void* param)
             //ANG_REQUEST_SHUTDOWN
             else if( strncmp( command, GBANG_REQUEST_SHUTDOWN, strlen(GBANG_REQUEST_SHUTDOWN) ) == 0 ){
                 GlobalDesc.needToClose = 1; // Set the close flag for all the threads.
+                iResult = 0;
+            }
+            else{
+                sendPacket(cliSock, GBANG_INVALID_COMMAND, 0, 0);
             }
         }
         else if (iResult == 0) // Client socket shut down'd properly. Close connection message has been posted (TCP FIN).
